@@ -1,0 +1,76 @@
+# --- Build artifacts ---
+build/
+bin/
+lib/
+*.o
+*.obj
+*.lo
+*.la
+*.al
+*.so
+*.so.*
+*.dylib
+*.dll
+*.exe
+*.out
+*.app
+
+# --- CMake ---
+CMakeFiles/
+CMakeCache.txt
+cmake_install.cmake
+Makefile
+CTestTestfile.cmake
+install_manifest.txt
+Testing/
+
+# --- Conan ---
+conan.lock
+conanbuild/
+conaninfo.txt
+*.tgz
+*.zip
+
+# --- Compiler generated files ---
+*.d
+*.gcno
+*.gcda
+*.gcov
+
+# --- Editor/IDE folders ---
+.vscode/
+.idea/
+*.code-workspace
+
+# --- System/OS files ---
+.DS_Store
+Thumbs.db
+
+# --- Backup/temporary files ---
+*~
+*.swp
+*.tmp
+*.bak
+*.old
+*.orig
+*.log
+
+# --- Ninja build files ---
+build.ninja
+.ninja_deps
+.ninja_log
+
+# --- CLion specific ---
+cmake-build-*/
+
+# --- Visual Studio specific (if suddenly cross-platform) ---
+*.vcxproj
+*.vcxproj.filters
+*.sln
+*.suo
+*.user
+*.opensdf
+*.VC.db
+
+# --- Test results ---
+test_detail.xml
