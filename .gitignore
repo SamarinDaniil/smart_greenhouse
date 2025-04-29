@@ -16,12 +16,14 @@ lib/
 *.app
 
 # --- CMake ---
+/CMakeLists.txt.use
 CMakeFiles/
 CMakeCache.txt
 cmake_install.cmake
 Makefile
 CTestTestfile.cmake
 install_manifest.txt
+CMakeUserPresets.json
 Testing/
 
 # --- Conan ---
