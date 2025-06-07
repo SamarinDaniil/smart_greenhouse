@@ -13,6 +13,11 @@ boost/*:filesystem=True
 boost/*:system=True
 boost/*:thread=True
 boost/*:atomic=True
+boost/*:date_time=True
+boost/*:log=True
+boost/*:log_setup=True
+boost/*:regex=True
+boost/*:random=True
 
 [generators]
 CMakeDeps
