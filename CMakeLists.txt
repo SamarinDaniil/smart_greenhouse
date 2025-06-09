@@ -26,10 +26,12 @@ find_package(Boost REQUIRED COMPONENTS
 
 set(SOURCES
     src/main.cpp
+    src/db/Database.cpp
 )
 
 set(HEADERS
     include/config/Logger.hpp
+    include/db/Database.hpp
 )
 
 add_executable(smart_greenhouse ${SOURCES} ${HEADERS})
