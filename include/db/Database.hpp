@@ -11,80 +11,12 @@
 #include <functional>
 #include <mutex>
 #include <format>
-
-// Структуры данных для работы с БД
-
-struct Greenhouse
-{
-    int gh_id = -1;
-    std::string name;
-    std::string location;
-    std::string created_at;
-
-    Greenhouse() = default;
-    Greenhouse(const std::string &n, const std::string &loc = "")
-        : name(n), location(loc) {}
-};
-
-struct Component
-{
-    int comp_id = -1;
-    int gh_id;
-    std::string name;
-    std::string role;    // 'sensor' или 'actuator'
-    std::string subtype; // 'temperature', 'humidity', 'fan', etc.
-    std::string created_at;
-
-    Component() = default;
-    Component(int greenhouse_id, const std::string &n, const std::string &r, const std::string &st)
-        : gh_id(greenhouse_id), name(n), role(r), subtype(st) {}
-};
-
-struct Metric
-{
-    int metric_id = -1;
-    int gh_id;
-    std::string timestamp;
-    std::string subtype;
-    double value;
-
-    Metric() = default;
-    Metric(int greenhouse_id, const std::string &ts, const std::string &st, double val)
-        : gh_id(greenhouse_id), timestamp(ts), subtype(st), value(val) {}
-};
-
-struct Rule
-{
-    int rule_id = -1;
-    int gh_id;
-    std::string name;
-    int from_comp_id;
-    int to_comp_id;
-    std::string kind;      // 'time' или 'threshold'
-    std::string operator_; // '>', '>=', '<', '<=', '=', '!='
-    std::optional<double> threshold;
-    std::optional<std::string> time_spec;
-    bool enabled = true;
-    std::optional<int> created_by;
-    std::string created_at;
-
-    Rule() = default;
-    Rule(int greenhouse_id, const std::string &n, int from_id, int to_id, const std::string &k)
-        : gh_id(greenhouse_id), name(n), from_comp_id(from_id), to_comp_id(to_id), kind(k) {}
-};
-
-struct User
-{
-    int user_id = -1;
-    std::string username;
-    std::string password_hash;
-    std::string role; // 'observer' или 'admin'
-    std::string created_at;
-
-    User() = default;
-    User(const std::string &user, const std::string &pass_hash, const std::string &r)
-        : username(user), password_hash(pass_hash), role(r) {}
-};
+// entities
+#include "entities/Greenhouse.hpp"
+#include "entities/Component.hpp"
+#include "entities/Metric.hpp"
+#include "entities/Rule.hpp"
+#include "entities/User.hpp"
 
 // Основной класс для работы с базой данных
 class Database
@@ -250,7 +182,7 @@ public:
 
     DatabaseInfo get_database_info();
 
-private: 
+private:
     sqlite3 *db_ = nullptr;
     std::string db_path_;
     mutable std::mutex db_mutex_;

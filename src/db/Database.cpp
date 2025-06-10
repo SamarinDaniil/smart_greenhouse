@@ -5,7 +5,7 @@
 #include <iomanip>
 #include <ctime>
 
-Database::Database(const std::string &db_path) : db_path_(db_path)
+Database::Database(const std::string &db_path) : db_path_(db_path) , db_(nullptr)
 {
     LOG_INFO("Инициализация базы данных: {}", db_path_);
 }
@@ -33,7 +33,12 @@ bool Database::initialize()
     }
 
     // Включаем поддержку внешних ключей
-    execute_sql("PRAGMA foreign_keys = ON");
+    if (!execute_sql("PRAGMA foreign_keys = ON")) {
+        LOG_ERROR("Не удалось включить внешние ключи");
+        sqlite3_close(db_);
+        db_ = nullptr;
+        return false;
+    }
 
     // Создаем таблицы и индексы
     if (!create_tables() || !create_indexes())
@@ -84,7 +89,7 @@ bool Database::create_tables()
             from_comp_id   INTEGER NOT NULL REFERENCES components(comp_id),
             to_comp_id     INTEGER NOT NULL REFERENCES components(comp_id),
             kind           TEXT    NOT NULL CHECK(kind IN ('time','threshold')),
-            operator       TEXT    CHECK(kind='threshold' AND operator IN ('>','>=','<','<=','=','!=')),
+            operator       TEXT    CHECK((kind = 'threshold' AND operator IN ('>', '>=', '<', '<=', '=', '!=')) OR (kind = 'time' AND operator IS NULL)),
             threshold      REAL    NULL,
             time_spec      TEXT    NULL,
             enabled        BOOLEAN NOT NULL DEFAULT 1,
@@ -100,7 +105,7 @@ bool Database::create_tables()
             role          TEXT    NOT NULL CHECK(role IN ('observer','admin')),
             created_at    DATETIME DEFAULT CURRENT_TIMESTAMP
         ))"};
-
+    
     for (const auto &query : table_queries)
     {
         if (!execute_sql(query))
@@ -137,6 +142,10 @@ bool Database::create_indexes()
 sqlite3_stmt *Database::prepare_statement(const std::string &sql)
 {
     sqlite3_stmt *stmt = nullptr;
+    if (!db_) {
+        LOG_ERROR("Соединение с БД не открыто");
+        return stmt;
+    }
     int result = sqlite3_prepare_v2(db_, sql.c_str(), -1, &stmt, nullptr);
 
     if (result != SQLITE_OK)
@@ -150,9 +159,21 @@ sqlite3_stmt *Database::prepare_statement(const std::string &sql)
 
 bool Database::execute_statement(sqlite3_stmt *stmt)
 {
+    if (!db_) {
+        LOG_ERROR("Соединение с БД не открыто");
+        return false;
+    }
+        if (!stmt) {
+        LOG_ERROR("Невалидный SQL-запрос");
+        return false;
+    }
     int result = sqlite3_step(stmt);
+    if (result != SQLITE_DONE && result != SQLITE_ROW) {
+        LOG_ERROR("Ошибка выполнения запроса: {}", sqlite3_errmsg(db_));
+    }
     return result == SQLITE_DONE || result == SQLITE_ROW;
 }
+
 
 void Database::log_sqlite_error(const std::string &operation) const
 {
@@ -161,6 +182,10 @@ void Database::log_sqlite_error(const std::string &operation) const
 
 bool Database::execute_sql(const std::string &sql)
 {
+    if (!db_) {
+        LOG_ERROR("Соединение с БД не открыто");
+        return false;
+    }
     char *error_msg = nullptr;
     int result = sqlite3_exec(db_, sql.c_str(), nullptr, nullptr, &error_msg);
 

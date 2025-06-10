@@ -8,6 +8,7 @@ set(CMAKE_CXX_EXTENSIONS OFF)
 set(CMAKE_CXX_COMPILER g++-13)
 
 #Поиск зависимостей
+find_package(nlohmann_json REQUIRED)
 find_package(PahoMqttCpp REQUIRED)  
 find_package(Pistache REQUIRED)            
 find_package(SQLite3 REQUIRED)  
@@ -32,6 +33,11 @@ set(SOURCES
 set(HEADERS
     include/config/Logger.hpp
     include/db/Database.hpp
+    include/entities/Greenhouse.hpp
+    include/entities/Component.hpp
+    include/entities/Metric.hpp
+    include/entities/Rule.hpp
+    include/entities/User.hpp
 )
 
 add_executable(smart_greenhouse ${SOURCES} ${HEADERS})
@@ -42,6 +48,7 @@ target_include_directories(smart_greenhouse PRIVATE
 
 target_link_libraries(smart_greenhouse
     PRIVATE
+        nlohmann_json::nlohmann_json
         yaml-cpp::yaml-cpp
         PahoMqttCpp::paho-mqttpp3-static
         Pistache::Pistache
