@@ -68,6 +68,7 @@ target_link_libraries(smart_greenhouse
         Pistache::Pistache
         SQLite::SQLite3
         mqtt_cpp::mqtt_cpp
+    PUBLIC
         Boost::filesystem
         Boost::system
         Boost::thread
