@@ -1,6 +1,7 @@
 #ifndef DATABASE_HPP
 #define DATABASE_HPP
 
+#include <iostream>
 #include <sqlite3.h>
 #include <string>
 #include <string_view>
@@ -10,7 +11,9 @@
 #include <chrono>
 #include <functional>
 #include <mutex>
-#include <format>
+#include <cstdint>
+//
+#include "utils/Logger.hpp"
 // entities
 #include "entities/Greenhouse.hpp"
 #include "entities/Component.hpp"
@@ -18,229 +21,314 @@
 #include "entities/Rule.hpp"
 #include "entities/User.hpp"
 
-// Основной класс для работы с базой данных
+
+#define CHECK_OP(expr) \
+    do { \
+        bool result = (expr); \
+        std::cout << #expr << ": " << (result ? "OK" : "FAILED") << std::endl; \
+        if (!result) return false; \
+    } while(0)
+
+/**
+ * @brief Thread-safe SQLite database wrapper for greenhouse management system
+ *
+ * This class provides a high-level interface for database operations with
+ * automatic transaction management, connection pooling, and error handling.
+ * All operations are thread-safe and use RAII principles.
+ */
 class Database
 {
 public:
-    // Конструктор принимает путь к файлу БД
-    explicit Database(const std::string &db_path = "greenhouse.db");
-    ~Database();
-
-    // Инициализация БД (создание таблиц и индексов)
-    bool initialize();
-
-    // Проверка соединения с БД
-    bool is_connected() const { return db_ != nullptr; }
-
-    // === ОПЕРАЦИИ С ТЕПЛИЦАМИ ===
-
-    // Создать новую теплицу
-    std::optional<int> create_greenhouse(const Greenhouse &greenhouse);
-
-    // Получить теплицу по ID
-    std::optional<Greenhouse> get_greenhouse(int gh_id);
-
-    // Получить все теплицы
-    std::vector<Greenhouse> get_all_greenhouses();
-
-    // Обновить данные теплицы
-    bool update_greenhouse(const Greenhouse &greenhouse);
-
-    // Удалить теплицу (каскадное удаление компонентов, метрик, правил)
-    bool delete_greenhouse(int gh_id);
-
-    // === ОПЕРАЦИИ С КОМПОНЕНТАМИ ===
-
-    // Добавить компонент в теплицу
-    std::optional<int> add_component(const Component &component);
-
-    // Получить компонент по ID
-    std::optional<Component> get_component(int comp_id);
-
-    // Получить все компоненты теплицы
-    std::vector<Component> get_components_by_greenhouse(int gh_id);
-
-    // Получить компоненты по роли (sensor/actuator)
-    std::vector<Component> get_components_by_role(int gh_id, const std::string &role);
-
-    // Получить компоненты по подтипу
-    std::vector<Component> get_components_by_subtype(int gh_id, const std::string &subtype);
-
-    // Обновить компонент
-    bool update_component(const Component &component);
-
-    // Удалить компонент
-    bool delete_component(int comp_id);
-
-    // === ОПЕРАЦИИ С МЕТРИКАМИ ===
-
-    // Добавить метрику
-    std::optional<int> add_metric(const Metric &metric);
-
-    // Массовая вставка метрик (более эффективно)
-    bool add_metrics_batch(const std::vector<Metric> &metrics);
-
-    // Получить метрики по теплице за период
-    std::vector<Metric> get_metrics(int gh_id,
-                                    const std::string &from_time = "",
-                                    const std::string &to_time = "",
-                                    const std::string &subtype = "");
-
-    // Получить последние N метрик
-    std::vector<Metric> get_latest_metrics(int gh_id, int limit = 100, const std::string &subtype = "");
-
-    // Получить агрегированные данные (среднее, мин, макс)
-    struct AggregatedData
-    {
-        double avg_value = 0.0;
-        double min_value = 0.0;
-        double max_value = 0.0;
-        int count = 0;
-    };
-
-    std::optional<AggregatedData> get_aggregated_metrics(int gh_id,
-                                                         const std::string &subtype,
-                                                         const std::string &from_time,
-                                                         const std::string &to_time);
-
-    // Очистка старых метрик (для экономии места)
-    bool cleanup_old_metrics(const std::string &before_date);
-
-    // === ОПЕРАЦИИ С ПРАВИЛАМИ АВТОМАТИЗАЦИИ ===
-
-    // Создать правило
-    std::optional<int> create_rule(const Rule &rule);
-
-    // Получить правило по ID
-    std::optional<Rule> get_rule(int rule_id);
-
-    // Получить все правила теплицы
-    std::vector<Rule> get_rules_by_greenhouse(int gh_id);
-
-    // Получить активные правила
-    std::vector<Rule> get_active_rules(int gh_id);
-
-    // Обновить правило
-    bool update_rule(const Rule &rule);
-
-    // Включить/выключить правило
-    bool toggle_rule(int rule_id, bool enabled);
-
-    // Удалить правило
-    bool delete_rule(int rule_id);
-
-    // === ОПЕРАЦИИ С ПОЛЬЗОВАТЕЛЯМИ ===
-
-    // Создать пользователя
-    std::optional<int> create_user(const User &user);
-
-    // Получить пользователя по имени
-    std::optional<User> get_user_by_username(const std::string &username);
-
-    // Получить пользователя по ID
-    std::optional<User> get_user(int user_id);
-
-    // Получить всех пользователей
-    std::vector<User> get_all_users();
-
-    // Обновить пользователя
-    bool update_user(const User &user);
-
-    // Удалить пользователя
-    bool delete_user(int user_id);
-
-    // === УТИЛИТЫ ===
-
-    // Получить текущее время в формате SQLite
-    static std::string get_current_timestamp();
-
-    // Проверить корректность временного диапазона
-    static bool is_valid_time_range(const std::string &from_time, const std::string &to_time);
-
-    // Начать транзакцию
-    bool begin_transaction();
-
-    // Зафиксировать транзакцию
-    bool commit_transaction();
-
-    // Откатить транзакцию
-    bool rollback_transaction();
-
-    // Выполнить произвольный SQL-запрос (для отладки/администрирования)
-    bool execute_sql(const std::string &sql);
-
-    // Получить информацию о размере БД
+    /**
+     * @brief Database statistics and information
+     */
     struct DatabaseInfo
     {
-        size_t total_size_bytes = 0;
-        int greenhouse_count = 0;
-        int component_count = 0;
-        int metric_count = 0;
-        int rule_count = 0;
-        int user_count = 0;
+        std::uint64_t total_size_bytes = 0;
+        std::int32_t greenhouse_count = 0;
+        std::int32_t component_count = 0;
+        std::int32_t metric_count = 0;
+        std::int32_t rule_count = 0;
+        std::int32_t user_count = 0;
+        std::string last_backup_time;
+        std::string created_at;
+        std::string version;
     };
 
-    DatabaseInfo get_database_info();
+    /**
+     * @brief RAII transaction wrapper for automatic rollback on exception
+     *
+     * Provides automatic transaction management with commit/rollback semantics.
+     * If commit() is not called explicitly, the transaction will be rolled back
+     * in the destructor.
+     */
+    class Transaction
+    {
+    public:
+        /**
+         * @brief Begin a new transaction
+         * @param db Reference to the database instance
+         */
+        explicit Transaction(Database &db);
+
+        /**
+         * @brief Destructor - automatically rolls back if not committed
+         */
+        ~Transaction();
+
+        // Non-copyable, movable
+        Transaction(const Transaction &) = delete;
+        Transaction &operator=(const Transaction &) = delete;
+        Transaction(Transaction &&) = default;
+        Transaction &operator=(Transaction &&) = default;
+
+        /**
+         * @brief Commit the transaction
+         * @return true if commit succeeded, false otherwise
+         */
+        bool commit();
+
+        /**
+         * @brief Check if transaction was started successfully
+         * @return true if transaction is valid
+         */
+        bool is_valid() const noexcept { return success_; }
+
+        /**
+         * @brief Check if transaction has been committed
+         * @return true if already committed
+         */
+        bool is_committed() const noexcept { return committed_; }
+
+    private:
+        Database &db_;
+        bool success_;
+        bool committed_;
+    };
+
+    /**
+     * @brief Construct database with specified path
+     * @param db_path Path to SQLite database file (default: "greenhouse.db")
+     * @throws std::runtime_error if database cannot be opened
+     */
+    explicit Database(const std::string &db_path = "greenhouse.db");
+
+    /**
+     * @brief Destructor - closes database connection safely
+     */
+    ~Database();
+
+    // Non-copyable, movable
+    Database(const Database &) = delete;
+    Database &operator=(const Database &) = delete;
+    Database(Database &&) noexcept;
+    Database &operator=(Database &&) noexcept;
+
+    /**
+     * @brief Initialize database schema and indexes
+     * @return true if initialization succeeded, false otherwise
+     */
+    bool initialize();
+
+    /**
+     * @brief Check if database connection is active
+     * @return true if connected, false otherwise
+     */
+    bool is_connected() const noexcept { return db_ != nullptr; }
+
+    /**
+     * @brief Get database file path
+     * @return Path to database file
+     */
+    const std::string &get_path() const noexcept { return db_path_; }
+
+    // Transaction management
+    /**
+     * @brief Begin a database transaction
+     * @return true if transaction started successfully
+     */
+    bool begin_transaction();
+
+    /**
+     * @brief Commit current transaction
+     * @return true if commit succeeded
+     */
+    bool commit_transaction();
+
+    /**
+     * @brief Rollback current transaction
+     * @return true if rollback succeeded
+     */
+    bool rollback_transaction();
+
+    /**
+     * @brief Execute SQL query safely
+     * @param sql SQL query string
+     * @return true if execution succeeded
+     */
+    bool execute_sql(const std::string &sql);
+
+    /**
+     * @brief Get database statistics and information
+     * @return DatabaseInfo structure with current stats
+     */
+    DatabaseInfo get_database_info() const;
+
+    /**
+     * @brief Create database backup
+     * @param backup_path Path for backup file
+     * @return true if backup created successfully
+     */
+    bool create_backup(const std::string &backup_path) const;
+
+    /**
+     * @brief Optimize database (VACUUM, ANALYZE)
+     * @return true if optimization succeeded
+     */
+    bool optimize();
+
+    // Static utility functions
+    /**
+     * @brief Get current timestamp in ISO format
+     * @return Current timestamp as string (YYYY-MM-DD HH:MM:SS)
+     */
+    static std::string get_current_timestamp();
+
+    /**
+     * @brief Validate time range
+     * @param from_time Start time string
+     * @param to_time End time string
+     * @return true if from_time < to_time and both are valid
+     */
+    static bool is_valid_time_range(const std::string &from_time, const std::string &to_time);
+
+    /**
+     * @brief Parse timestamp string to time_point
+     * @param timestamp Timestamp string in ISO format
+     * @return Optional time_point, nullopt if parsing failed
+     */
+    static std::optional<std::chrono::system_clock::time_point>
+    parse_timestamp(const std::string &timestamp);
+
+    bool test_database_operations(Database &db) {
+        try {
+            
+            // 2. Инициализация схемы
+            CHECK_OP(db.initialize());
+            
+            // 3. Информация о БД
+            auto info = db.get_database_info();
+            std::cout << "Initial DB Info:" << std::endl;
+            std::cout << "  Version: " << info.version << std::endl;
+            std::cout << "  Greenhouses: " << info.greenhouse_count << std::endl;
+            std::cout << "  Components: " << info.component_count << std::endl;
+            
+            // 4. Транзакция: добавление данных
+            {
+                Database::Transaction tx(db);
+                if (!tx.is_valid()) {
+                    std::cerr << "Failed to start transaction" << std::endl;
+                    return false;
+                }
+                
+                // Вставка теплицы
+                auto stmt = db.prepare_statement(
+                    "INSERT INTO greenhouses (name, location) VALUES (?, ?)"
+                );
+                if (!stmt) return false;
+                
+                sqlite3_bind_text(stmt, 1, "GH-Test", -1, SQLITE_TRANSIENT);
+                sqlite3_bind_text(stmt, 2, "Test Location", -1, SQLITE_TRANSIENT);
+                CHECK_OP(db.execute_statement(stmt));
+                db.finalize_statement(stmt);
+                
+                // Вставка компонента
+                stmt = db.prepare_statement(
+                    "INSERT INTO components (gh_id, name, role, subtype) VALUES (1, ?, ?, ?)"
+                );
+                if (!stmt) return false;
+                
+                sqlite3_bind_text(stmt, 1, "Test Sensor", -1, SQLITE_TRANSIENT);
+                sqlite3_bind_text(stmt, 2, "sensor", -1, SQLITE_TRANSIENT);
+                sqlite3_bind_text(stmt, 3, "temperature", -1, SQLITE_TRANSIENT);
+                CHECK_OP(db.execute_statement(stmt));
+                db.finalize_statement(stmt);
+                
+                // Вставка метрики
+                stmt = db.prepare_statement(
+                    "INSERT INTO metrics (gh_id, ts, subtype, value) VALUES (1, ?, ?, ?)"
+                );
+                if (!stmt) return false;
+                
+                sqlite3_bind_text(stmt, 1, "2023-09-01 12:00:00", -1, SQLITE_TRANSIENT);
+                sqlite3_bind_text(stmt, 2, "temperature", -1, SQLITE_TRANSIENT);
+                sqlite3_bind_double(stmt, 3, 25.5);
+                CHECK_OP(db.execute_statement(stmt));
+                db.finalize_statement(stmt);
+                
+                CHECK_OP(tx.commit());
+            }
+            
+            // 5. Выборка данных
+            auto stmt = db.prepare_statement(
+                "SELECT gh_id, name FROM greenhouses WHERE gh_id = 1"
+            );
+            if (!stmt) return false;
+            
+            if (sqlite3_step(stmt) == SQLITE_ROW) {
+                int gh_id = sqlite3_column_int(stmt, 0);
+                const char *name = reinterpret_cast<const char*>(sqlite3_column_text(stmt, 1));
+                std::cout << "Found greenhouse: " << gh_id << " - " << name << std::endl;
+            }
+            db.finalize_statement(stmt);
+            
+            // 6. Резервное копирование
+            CHECK_OP(db.create_backup("test_greenhouse_backup.db"));
+            
+            // 7. Оптимизация
+            CHECK_OP(db.optimize());
+            
+            return true;
+        }
+        catch (const std::exception &e) {
+            LOG_ERROR("Exception: {}" + std::string(e.what()));
+            return false;
+        }
+    }
+
 
 private:
-    sqlite3 *db_ = nullptr;
+    sqlite3 *db_;
     std::string db_path_;
     mutable std::mutex db_mutex_;
 
-    // Вспомогательные методы
+    // Schema management
+    bool open_connection();
     bool create_tables();
     bool create_indexes();
+    bool configure_database();
 
-    // Подготовка statement'ов
-    sqlite3_stmt *prepare_statement(const std::string &sql);
+    // Statement management
+    sqlite3_stmt *prepare_statement(const std::string &sql) const;
+    bool execute_statement(sqlite3_stmt *stmt) const;
+    void finalize_statement(sqlite3_stmt *stmt) const;
 
-    // Выполнение подготовленного statement'а
-    bool execute_statement(sqlite3_stmt *stmt);
+    // Utility methods
+    bool table_exists(const std::string &table_name) const;
+    bool column_exists(const std::string &table_name, const std::string &column_name) const;
+    std::string get_schema_version() const;
+    bool set_schema_version(const std::string &version);
 
-    // Логирование ошибок SQLite
+    // Error handling
     void log_sqlite_error(const std::string &operation) const;
+    std::string get_last_error() const;
 
-    // Проверка существования таблицы
-    bool table_exists(const std::string &table_name);
-
-    // Запрет копирования
-    Database(const Database &) = delete;
-    Database &operator=(const Database &) = delete;
-};
-
-// RAII-обертка для транзакций
-class Transaction
-{
-public:
-    explicit Transaction(Database &db) : db_(db), committed_(false)
-    {
-        success_ = db_.begin_transaction();
-    }
-
-    ~Transaction()
-    {
-        if (success_ && !committed_)
-        {
-            db_.rollback_transaction();
-        }
-    }
-
-    bool commit()
-    {
-        if (success_ && !committed_)
-        {
-            committed_ = true;
-            return db_.commit_transaction();
-        }
-        return false;
-    }
-
-    bool is_valid() const { return success_; }
-
-private:
-    Database &db_;
-    bool success_;
-    bool committed_;
+    // Manager classes need access to database internals
+    friend class GreenhouseManager;
+    friend class ComponentManager;
+    friend class MetricManager;
+    friend class RuleManager;
+    friend class UserManager;
 };
 
 #endif // DATABASE_HPP

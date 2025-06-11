@@ -1,0 +1,16 @@
+mqtt:
+  broker: "mqtt://192.168.1.10"
+  client_id: "greenhouse-server"
+  qos: 1
+
+database:
+  path: "data/greenhouse.db"
+
+server:
+  host: "0.0.0.0"
+  port: 8080
+  jwt_secret: "my_jwt_secret" # Не забудь поменять
+
+admin:
+  username: "admin"
+  password: "password" # Не забудь поменять

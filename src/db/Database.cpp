@@ -1,1138 +1,664 @@
 #include "db/Database.hpp"
-#include "config/Logger.hpp"
 #include <stdexcept>
 #include <sstream>
 #include <iomanip>
 #include <ctime>
+#include <filesystem>
+#include <fstream>
+#include <algorithm>
 
-Database::Database(const std::string &db_path) : db_path_(db_path) , db_(nullptr)
+namespace fs = std::filesystem;
+
+// Database version for schema migration
+static constexpr const char *DATABASE_VERSION = "1.0.0";
+
+// Constructor and Destructor
+Database::Database(const std::string &db_path) : db_(nullptr), db_path_(db_path)
 {
-    LOG_INFO("Инициализация базы данных: {}", db_path_);
+    if (!open_connection())
+    {
+        throw std::runtime_error("Failed to open database: " + db_path);
+    }
 }
 
 Database::~Database()
 {
+    std::lock_guard<std::mutex> lock(db_mutex_);
     if (db_)
     {
         sqlite3_close(db_);
         db_ = nullptr;
-        LOG_INFO("База данных закрыта");
     }
+}
+
+// Move constructor and assignment
+Database::Database(Database &&other) noexcept
+    : db_(other.db_), db_path_(std::move(other.db_path_))
+{
+    other.db_ = nullptr;
+}
+
+Database &Database::operator=(Database &&other) noexcept
+{
+    if (this != &other)
+    {
+        std::lock_guard<std::mutex> lock(db_mutex_);
+        if (db_)
+        {
+            sqlite3_close(db_);
+        }
+        db_ = other.db_;
+        db_path_ = std::move(other.db_path_);
+        other.db_ = nullptr;
+    }
+    return *this;
+}
+
+// Core database operations
+bool Database::open_connection()
+{
+    std::lock_guard<std::mutex> lock(db_mutex_);
+
+    if (sqlite3_open(db_path_.c_str(), &db_) != SQLITE_OK)
+    {
+        log_sqlite_error("open_connection");
+        return false;
+    }
+
+    return configure_database();
+}
+
+bool Database::configure_database()
+{
+    // Enable WAL mode for better concurrency
+    if (sqlite3_exec(db_, "PRAGMA journal_mode = WAL;", nullptr, nullptr, nullptr) != SQLITE_OK)
+    {
+        log_sqlite_error("configure_database: WAL mode");
+        return false;
+    }
+
+    // Set synchronous mode for performance/safety balance
+    if (sqlite3_exec(db_, "PRAGMA synchronous = NORMAL;", nullptr, nullptr, nullptr) != SQLITE_OK)
+    {
+        log_sqlite_error("configure_database: synchronous mode");
+        return false;
+    }
+
+    // Enable foreign key constraints
+    if (sqlite3_exec(db_, "PRAGMA foreign_keys = ON;", nullptr, nullptr, nullptr) != SQLITE_OK)
+    {
+        log_sqlite_error("configure_database: foreign keys");
+        return false;
+    }
+
+    // Set busy timeout
+    if (sqlite3_busy_timeout(db_, 30000) != SQLITE_OK)
+    {
+        log_sqlite_error("configure_database: busy timeout");
+        return false;
+    }
+
+    return true;
 }
 
 bool Database::initialize()
 {
-    std::lock_guard<std::mutex> lock(db_mutex_);
-
-    // Открываем БД
-    int result = sqlite3_open(db_path_.c_str(), &db_);
-    if (result != SQLITE_OK)
+    if (!is_connected())
     {
-        LOG_ERROR("Не удалось открыть БД: {}", sqlite3_errmsg(db_));
+        LOG_ERROR("Database not connected");
         return false;
     }
 
-    // Включаем поддержку внешних ключей
-    if (!execute_sql("PRAGMA foreign_keys = ON")) {
-        LOG_ERROR("Не удалось включить внешние ключи");
-        sqlite3_close(db_);
-        db_ = nullptr;
-        return false;
-    }
-
-    // Создаем таблицы и индексы
-    if (!create_tables() || !create_indexes())
+    try
     {
-        LOG_ERROR("Не удалось создать структуру БД");
-        return false;
-    }
-
-    LOG_INFO("База данных успешно инициализирована");
-    return true;
-}
-
-bool Database::create_tables()
-{
-    const std::vector<std::string> table_queries = {
-        // Таблица теплиц
-        R"(CREATE TABLE IF NOT EXISTS greenhouses (
-            gh_id        INTEGER PRIMARY KEY AUTOINCREMENT,
-            name         TEXT    NOT NULL UNIQUE,
-            location     TEXT,
-            created_at   DATETIME DEFAULT CURRENT_TIMESTAMP
-        ))",
-
-        // Таблица компонентов
-        R"(CREATE TABLE IF NOT EXISTS components (
-            comp_id      INTEGER PRIMARY KEY AUTOINCREMENT,
-            gh_id        INTEGER NOT NULL REFERENCES greenhouses(gh_id) ON DELETE CASCADE,
-            name         TEXT    NOT NULL,
-            role         TEXT    NOT NULL CHECK(role IN ('sensor', 'actuator')),
-            subtype      TEXT    NOT NULL,
-            created_at   DATETIME DEFAULT CURRENT_TIMESTAMP
-        ))",
-
-        // Таблица метрик
-        R"(CREATE TABLE IF NOT EXISTS metrics (
-            metric_id    INTEGER PRIMARY KEY AUTOINCREMENT,
-            gh_id        INTEGER NOT NULL REFERENCES greenhouses(gh_id) ON DELETE CASCADE,
-            ts           DATETIME NOT NULL,
-            subtype      TEXT    NOT NULL,
-            value        REAL    NOT NULL
-        ))",
-
-        // Таблица правил
-        R"(CREATE TABLE IF NOT EXISTS rules (
-            rule_id        INTEGER PRIMARY KEY AUTOINCREMENT,
-            gh_id          INTEGER NOT NULL REFERENCES greenhouses(gh_id) ON DELETE CASCADE,
-            name           TEXT    NOT NULL,
-            from_comp_id   INTEGER NOT NULL REFERENCES components(comp_id),
-            to_comp_id     INTEGER NOT NULL REFERENCES components(comp_id),
-            kind           TEXT    NOT NULL CHECK(kind IN ('time','threshold')),
-            operator       TEXT    CHECK((kind = 'threshold' AND operator IN ('>', '>=', '<', '<=', '=', '!=')) OR (kind = 'time' AND operator IS NULL)),
-            threshold      REAL    NULL,
-            time_spec      TEXT    NULL,
-            enabled        BOOLEAN NOT NULL DEFAULT 1,
-            created_by     INTEGER REFERENCES users(user_id),
-            created_at     DATETIME DEFAULT CURRENT_TIMESTAMP
-        ))",
-
-        // Таблица пользователей
-        R"(CREATE TABLE IF NOT EXISTS users (
-            user_id       INTEGER PRIMARY KEY AUTOINCREMENT,
-            username      TEXT    UNIQUE NOT NULL,
-            password_hash TEXT    NOT NULL,
-            role          TEXT    NOT NULL CHECK(role IN ('observer','admin')),
-            created_at    DATETIME DEFAULT CURRENT_TIMESTAMP
-        ))"};
-    
-    for (const auto &query : table_queries)
-    {
-        if (!execute_sql(query))
+        Transaction transaction(*this);
+        if (!transaction.is_valid())
         {
-            LOG_ERROR("Не удалось создать таблицу");
+            LOG_ERROR("Failed to begin initialization transaction");
             return false;
         }
-    }
 
-    return true;
+        // Check if tables exist and create if necessary
+        if (!table_exists("greenhouses"))
+        {
+            if (!create_tables())
+            {
+                LOG_ERROR("Failed to create tables");
+                return false;
+            }
+
+            if (!create_indexes())
+            {
+                LOG_ERROR("Failed to create indexes");
+                return false;
+            }
+
+            if (!set_schema_version(DATABASE_VERSION))
+            {
+                LOG_ERROR("Failed to set schema version");
+                return false;
+            }
+        }
+        else
+        {
+            // Validate existing schema
+            std::string current_version = get_schema_version();
+            if (current_version != DATABASE_VERSION)
+            {
+                LOG_WARN("Schema version mismatch: expected " + std::string(DATABASE_VERSION) +
+                            ", found " + current_version);
+                // TODO: implement schema migration logic
+            }
+        }
+
+        if (!transaction.commit())
+        {
+            LOG_ERROR("Failed to commit initialization transaction");
+            return false;
+        }
+
+        LOG_INFO("Database initialized successfully");
+        return true;
+    }
+    catch (const std::exception &e)
+    {
+        LOG_ERROR("Database initialization failed: " + std::string(e.what()));
+        return false;
+    }
+}
+
+// Transaction management
+bool Database::begin_transaction()
+{
+    return execute_sql("BEGIN IMMEDIATE TRANSACTION;");
+}
+
+bool Database::commit_transaction()
+{
+    return execute_sql("COMMIT TRANSACTION;");
+}
+
+bool Database::rollback_transaction()
+{
+    return execute_sql("ROLLBACK TRANSACTION;");
+}
+
+// Schema creation
+bool Database::create_tables()
+{
+    const char *sql = R"(
+        -- 1. Таблица теплиц  
+        CREATE TABLE greenhouses (  
+            gh_id         INTEGER PRIMARY KEY AUTOINCREMENT,  
+            name          TEXT NOT NULL UNIQUE,  
+            location      TEXT,  
+            created_at    DATETIME DEFAULT CURRENT_TIMESTAMP,  
+            updated_at    DATETIME DEFAULT CURRENT_TIMESTAMP  
+        );  
+
+        -- 2. Компоненты (сенсоры и актуаторы)  
+        CREATE TABLE components (  
+            comp_id       INTEGER PRIMARY KEY AUTOINCREMENT,  
+            gh_id         INTEGER NOT NULL REFERENCES greenhouses(gh_id) ON DELETE CASCADE,  
+            name          TEXT NOT NULL,  
+            role          TEXT NOT NULL CHECK(role IN ('sensor', 'actuator')),  
+            subtype       TEXT NOT NULL,  
+            created_at    DATETIME DEFAULT CURRENT_TIMESTAMP,  
+            updated_at    DATETIME DEFAULT CURRENT_TIMESTAMP  
+        );  
+
+        -- 3. Метрики (сырые показания)  
+        CREATE TABLE metrics (  
+            metric_id     INTEGER PRIMARY KEY AUTOINCREMENT,  
+            gh_id         INTEGER NOT NULL REFERENCES greenhouses(gh_id) ON DELETE CASCADE,  
+            ts            DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP,  
+            subtype       TEXT NOT NULL,  
+            value         REAL NOT NULL  
+        );  
+
+        -- 4. Правила автоматизации  
+        CREATE TABLE rules (  
+            rule_id       INTEGER PRIMARY KEY AUTOINCREMENT,  
+            gh_id         INTEGER NOT NULL REFERENCES greenhouses(gh_id) ON DELETE CASCADE,  
+            name          TEXT NOT NULL,  
+            from_comp_id  INTEGER NOT NULL REFERENCES components(comp_id),  
+            to_comp_id    INTEGER NOT NULL REFERENCES components(comp_id),  
+            kind          TEXT NOT NULL CHECK(kind IN ('time','threshold')),  
+            operator      TEXT CHECK(kind='threshold' AND operator IN ('>','>=','<','<=','=','!=')),  
+            threshold     REAL,  
+            time_spec     TEXT,  
+            enabled       BOOLEAN NOT NULL DEFAULT 1,  
+            created_at    DATETIME DEFAULT CURRENT_TIMESTAMP,  
+            updated_at    DATETIME DEFAULT CURRENT_TIMESTAMP  
+        );  
+
+        -- 5. Пользователи  
+        CREATE TABLE users (  
+            user_id       INTEGER PRIMARY KEY AUTOINCREMENT,  
+            username      TEXT UNIQUE NOT NULL,  
+            password_hash TEXT NOT NULL,  
+            role          TEXT NOT NULL CHECK(role IN ('observer','admin')),  
+            created_at    DATETIME DEFAULT CURRENT_TIMESTAMP  
+        );  
+
+        -- Schema version table
+        CREATE TABLE IF NOT EXISTS schema_info (
+            version       TEXT PRIMARY KEY,
+            applied_at    DATETIME DEFAULT CURRENT_TIMESTAMP
+        ) WITHOUT ROWID;
+
+        -- Триггеры для обновления updated_at  
+        CREATE TRIGGER update_greenhouses_updated_at  
+        AFTER UPDATE ON greenhouses FOR EACH ROW  
+        BEGIN  
+            UPDATE greenhouses SET updated_at = CURRENT_TIMESTAMP WHERE gh_id = NEW.gh_id;  
+        END;  
+
+        CREATE TRIGGER update_components_updated_at  
+        AFTER UPDATE ON components FOR EACH ROW  
+        BEGIN  
+            UPDATE components SET updated_at = CURRENT_TIMESTAMP WHERE comp_id = NEW.comp_id;  
+        END;  
+
+        CREATE TRIGGER update_rules_updated_at  
+        AFTER UPDATE ON rules FOR EACH ROW  
+        BEGIN  
+            UPDATE rules SET updated_at = CURRENT_TIMESTAMP WHERE rule_id = NEW.rule_id;  
+        END;  
+
+        CREATE TRIGGER update_users_updated_at  
+        AFTER UPDATE ON users FOR EACH ROW  
+        BEGIN  
+            UPDATE users SET updated_at = CURRENT_TIMESTAMP WHERE user_id = NEW.user_id;  
+        END;  
+    )";
+
+    return execute_sql(sql);
 }
 
 bool Database::create_indexes()
 {
-    const std::vector<std::string> index_queries = {
-        "CREATE INDEX IF NOT EXISTS idx_components_gh_id ON components(gh_id)",
-        "CREATE INDEX IF NOT EXISTS idx_metrics_gh_ts ON metrics(gh_id, ts)",
-        "CREATE INDEX IF NOT EXISTS idx_rules_gh ON rules(gh_id)",
-        "CREATE INDEX IF NOT EXISTS idx_metrics_subtype ON metrics(subtype)",
-        "CREATE INDEX IF NOT EXISTS idx_metrics_ts ON metrics(ts)"};
+    const char *sql = R"(
+        -- components
+        CREATE INDEX idx_components_gh_id ON components(gh_id);
+        CREATE INDEX idx_components_gh_id_role ON components(gh_id, role);
 
-    for (const auto &query : index_queries)
-    {
-        if (!execute_sql(query))
-        {
-            LOG_ERROR("Не удалось создать индекс");
-            return false;
-        }
-    }
+        -- metrics
+        CREATE INDEX idx_metrics_gh_ts ON metrics(gh_id, ts DESC);
 
-    return true;
+        -- rules
+        CREATE INDEX idx_rules_gh_enabled ON rules(gh_id, enabled);
+        CREATE INDEX idx_rules_components ON rules(from_comp_id, to_comp_id);
+        CREATE INDEX idx_rules_gh_kind ON rules(gh_id, kind);
+
+        -- users
+        CREATE INDEX idx_users_username ON users(username);
+        CREATE INDEX idx_users_role ON users(role);
+    )";
+
+    return execute_sql(sql);
 }
 
-sqlite3_stmt *Database::prepare_statement(const std::string &sql)
+// Statement management
+sqlite3_stmt *Database::prepare_statement(const std::string &sql) const
 {
-    sqlite3_stmt *stmt = nullptr;
-    if (!db_) {
-        LOG_ERROR("Соединение с БД не открыто");
-        return stmt;
-    }
-    int result = sqlite3_prepare_v2(db_, sql.c_str(), -1, &stmt, nullptr);
+    std::lock_guard<std::mutex> lock(db_mutex_);
 
-    if (result != SQLITE_OK)
+    if (!db_)
     {
-        LOG_ERROR("Ошибка подготовки запроса: {} - {}", sql, sqlite3_errmsg(db_));
+        LOG_ERROR("Database not connected");
+        return nullptr;
+    }
+
+    sqlite3_stmt *stmt = nullptr;
+    if (sqlite3_prepare_v2(db_, sql.c_str(), -1, &stmt, nullptr) != SQLITE_OK)
+    {
+        log_sqlite_error("prepare_statement: " + sql);
         return nullptr;
     }
 
     return stmt;
 }
 
-bool Database::execute_statement(sqlite3_stmt *stmt)
+bool Database::execute_statement(sqlite3_stmt *stmt) const
 {
-    if (!db_) {
-        LOG_ERROR("Соединение с БД не открыто");
+    if (!stmt)
+    {
+        LOG_ERROR("Null statement");
         return false;
     }
-        if (!stmt) {
-        LOG_ERROR("Невалидный SQL-запрос");
-        return false;
+
+    const int result = sqlite3_step(stmt);
+    const bool success = (result == SQLITE_DONE || result == SQLITE_ROW);
+
+    if (!success)
+    {
+        const char *sql = sqlite3_sql(stmt);
+        log_sqlite_error("execute_statement: " + std::string(sql ? sql : "unknown"));
     }
-    int result = sqlite3_step(stmt);
-    if (result != SQLITE_DONE && result != SQLITE_ROW) {
-        LOG_ERROR("Ошибка выполнения запроса: {}", sqlite3_errmsg(db_));
-    }
-    return result == SQLITE_DONE || result == SQLITE_ROW;
+
+    return success;
 }
 
-
-void Database::log_sqlite_error(const std::string &operation) const
+void Database::finalize_statement(sqlite3_stmt *stmt) const
 {
-    LOG_ERROR("SQLite ошибка в {}: {}", operation, sqlite3_errmsg(db_));
+    if (stmt)
+    {
+        sqlite3_finalize(stmt);
+    }
 }
 
 bool Database::execute_sql(const std::string &sql)
 {
-    if (!db_) {
-        LOG_ERROR("Соединение с БД не открыто");
+    std::lock_guard<std::mutex> lock(db_mutex_);
+
+    if (!db_)
+    {
+        LOG_ERROR("Database not connected");
         return false;
     }
-    char *error_msg = nullptr;
-    int result = sqlite3_exec(db_, sql.c_str(), nullptr, nullptr, &error_msg);
+
+    char *errMsg = nullptr;
+    const int result = sqlite3_exec(db_, sql.c_str(), nullptr, nullptr, &errMsg);
 
     if (result != SQLITE_OK)
     {
-        LOG_ERROR("Ошибка выполнения SQL: {} - {}", sql, error_msg ? error_msg : "Unknown error");
-        if (error_msg)
-            sqlite3_free(error_msg);
+        std::string error = errMsg ? errMsg : "Unknown error";
+        LOG_ERROR("execute_sql failed: " + sql + " | Error: " + error);
+        if (errMsg)
+        {
+            sqlite3_free(errMsg);
+        }
         return false;
     }
 
     return true;
 }
 
-// === ОПЕРАЦИИ С ТЕПЛИЦАМИ ===
-
-std::optional<int> Database::create_greenhouse(const Greenhouse &greenhouse)
+// Utility methods
+bool Database::table_exists(const std::string &table_name) const
 {
-    std::lock_guard<std::mutex> lock(db_mutex_);
+    const std::string sql = "SELECT COUNT(*) FROM sqlite_master WHERE type='table' AND name=?";
 
-    const char *sql = "INSERT INTO greenhouses (name, location) VALUES (?, ?)";
-    sqlite3_stmt *stmt = prepare_statement(sql);
+    auto stmt = prepare_statement(sql);
     if (!stmt)
-        return std::nullopt;
+        return false;
 
-    sqlite3_bind_text(stmt, 1, greenhouse.name.c_str(), -1, SQLITE_STATIC);
-    sqlite3_bind_text(stmt, 2, greenhouse.location.c_str(), -1, SQLITE_STATIC);
+    sqlite3_bind_text(stmt, 1, table_name.c_str(), -1, SQLITE_TRANSIENT);
 
-    if (!execute_statement(stmt))
-    {
-        log_sqlite_error("create_greenhouse");
-        sqlite3_finalize(stmt);
-        return std::nullopt;
-    }
-
-    int gh_id = static_cast<int>(sqlite3_last_insert_rowid(db_));
-    sqlite3_finalize(stmt);
-
-    LOG_INFO("Создана теплица ID={}, name={}", gh_id, greenhouse.name);
-    return gh_id;
-}
-
-std::optional<Greenhouse> Database::get_greenhouse(int gh_id)
-{
-    std::lock_guard<std::mutex> lock(db_mutex_);
-
-    const char *sql = "SELECT gh_id, name, location, created_at FROM greenhouses WHERE gh_id = ?";
-    sqlite3_stmt *stmt = prepare_statement(sql);
-    if (!stmt)
-        return std::nullopt;
-
-    sqlite3_bind_int(stmt, 1, gh_id);
-
+    bool exists = false;
     if (sqlite3_step(stmt) == SQLITE_ROW)
     {
-        Greenhouse gh;
-        gh.gh_id = sqlite3_column_int(stmt, 0);
-        gh.name = reinterpret_cast<const char *>(sqlite3_column_text(stmt, 1));
-
-        const char *location = reinterpret_cast<const char *>(sqlite3_column_text(stmt, 2));
-        if (location)
-            gh.location = location;
-
-        const char *created_at = reinterpret_cast<const char *>(sqlite3_column_text(stmt, 3));
-        if (created_at)
-            gh.created_at = created_at;
-
-        sqlite3_finalize(stmt);
-        return gh;
+        exists = (sqlite3_column_int(stmt, 0) > 0);
     }
 
-    sqlite3_finalize(stmt);
-    return std::nullopt;
+    finalize_statement(stmt);
+    return exists;
 }
 
-std::vector<Greenhouse> Database::get_all_greenhouses()
+bool Database::column_exists(const std::string &table_name, const std::string &column_name) const
 {
-    std::lock_guard<std::mutex> lock(db_mutex_);
-    std::vector<Greenhouse> greenhouses;
+    const std::string sql = "PRAGMA table_info(" + table_name + ")";
 
-    const char *sql = "SELECT gh_id, name, location, created_at FROM greenhouses ORDER BY name";
-    sqlite3_stmt *stmt = prepare_statement(sql);
+    auto stmt = prepare_statement(sql);
     if (!stmt)
-        return greenhouses;
+        return false;
 
+    bool exists = false;
     while (sqlite3_step(stmt) == SQLITE_ROW)
     {
-        Greenhouse gh;
-        gh.gh_id = sqlite3_column_int(stmt, 0);
-        gh.name = reinterpret_cast<const char *>(sqlite3_column_text(stmt, 1));
-
-        const char *location = reinterpret_cast<const char *>(sqlite3_column_text(stmt, 2));
-        if (location)
-            gh.location = location;
-
-        const char *created_at = reinterpret_cast<const char *>(sqlite3_column_text(stmt, 3));
-        if (created_at)
-            gh.created_at = created_at;
-
-        greenhouses.push_back(std::move(gh));
-    }
-
-    sqlite3_finalize(stmt);
-    return greenhouses;
-}
-
-bool Database::update_greenhouse(const Greenhouse &greenhouse)
-{
-    std::lock_guard<std::mutex> lock(db_mutex_);
-
-    const char *sql = "UPDATE greenhouses SET name = ?, location = ? WHERE gh_id = ?";
-    sqlite3_stmt *stmt = prepare_statement(sql);
-    if (!stmt)
-        return false;
-
-    sqlite3_bind_text(stmt, 1, greenhouse.name.c_str(), -1, SQLITE_STATIC);
-    sqlite3_bind_text(stmt, 2, greenhouse.location.c_str(), -1, SQLITE_STATIC);
-    sqlite3_bind_int(stmt, 3, greenhouse.gh_id);
-
-    bool success = execute_statement(stmt);
-    sqlite3_finalize(stmt);
-
-    if (success)
-    {
-        LOG_INFO("Обновлена теплица ID={}", greenhouse.gh_id);
-    }
-
-    return success;
-}
-
-bool Database::delete_greenhouse(int gh_id)
-{
-    std::lock_guard<std::mutex> lock(db_mutex_);
-
-    const char *sql = "DELETE FROM greenhouses WHERE gh_id = ?";
-    sqlite3_stmt *stmt = prepare_statement(sql);
-    if (!stmt)
-        return false;
-
-    sqlite3_bind_int(stmt, 1, gh_id);
-
-    bool success = execute_statement(stmt);
-    sqlite3_finalize(stmt);
-
-    if (success)
-    {
-        LOG_INFO("Удалена теплица ID={}", gh_id);
-    }
-
-    return success;
-}
-
-// === ОПЕРАЦИИ С КОМПОНЕНТАМИ ===
-
-std::optional<int> Database::add_component(const Component &component)
-{
-    std::lock_guard<std::mutex> lock(db_mutex_);
-
-    const char *sql = "INSERT INTO components (gh_id, name, role, subtype) VALUES (?, ?, ?, ?)";
-    sqlite3_stmt *stmt = prepare_statement(sql);
-    if (!stmt)
-        return std::nullopt;
-
-    sqlite3_bind_int(stmt, 1, component.gh_id);
-    sqlite3_bind_text(stmt, 2, component.name.c_str(), -1, SQLITE_STATIC);
-    sqlite3_bind_text(stmt, 3, component.role.c_str(), -1, SQLITE_STATIC);
-    sqlite3_bind_text(stmt, 4, component.subtype.c_str(), -1, SQLITE_STATIC);
-
-    if (!execute_statement(stmt))
-    {
-        log_sqlite_error("add_component");
-        sqlite3_finalize(stmt);
-        return std::nullopt;
-    }
-
-    int comp_id = static_cast<int>(sqlite3_last_insert_rowid(db_));
-    sqlite3_finalize(stmt);
-
-    LOG_INFO("Добавлен компонент ID={}, name={}, type={}", comp_id, component.name, component.subtype);
-    return comp_id;
-}
-
-std::optional<Component> Database::get_component(int comp_id)
-{
-    std::lock_guard<std::mutex> lock(db_mutex_);
-
-    const char *sql = "SELECT comp_id, gh_id, name, role, subtype, created_at FROM components WHERE comp_id = ?";
-    sqlite3_stmt *stmt = prepare_statement(sql);
-    if (!stmt)
-        return std::nullopt;
-
-    sqlite3_bind_int(stmt, 1, comp_id);
-
-    if (sqlite3_step(stmt) == SQLITE_ROW)
-    {
-        Component comp;
-        comp.comp_id = sqlite3_column_int(stmt, 0);
-        comp.gh_id = sqlite3_column_int(stmt, 1);
-        comp.name = reinterpret_cast<const char *>(sqlite3_column_text(stmt, 2));
-        comp.role = reinterpret_cast<const char *>(sqlite3_column_text(stmt, 3));
-        comp.subtype = reinterpret_cast<const char *>(sqlite3_column_text(stmt, 4));
-
-        const char *created_at = reinterpret_cast<const char *>(sqlite3_column_text(stmt, 5));
-        if (created_at)
-            comp.created_at = created_at;
-
-        sqlite3_finalize(stmt);
-        return comp;
-    }
-
-    sqlite3_finalize(stmt);
-    return std::nullopt;
-}
-
-std::vector<Component> Database::get_components_by_greenhouse(int gh_id)
-{
-    std::lock_guard<std::mutex> lock(db_mutex_);
-    std::vector<Component> components;
-
-    const char *sql = "SELECT comp_id, gh_id, name, role, subtype, created_at FROM components WHERE gh_id = ? ORDER BY name";
-    sqlite3_stmt *stmt = prepare_statement(sql);
-    if (!stmt)
-        return components;
-
-    sqlite3_bind_int(stmt, 1, gh_id);
-
-    while (sqlite3_step(stmt) == SQLITE_ROW)
-    {
-        Component comp;
-        comp.comp_id = sqlite3_column_int(stmt, 0);
-        comp.gh_id = sqlite3_column_int(stmt, 1);
-        comp.name = reinterpret_cast<const char *>(sqlite3_column_text(stmt, 2));
-        comp.role = reinterpret_cast<const char *>(sqlite3_column_text(stmt, 3));
-        comp.subtype = reinterpret_cast<const char *>(sqlite3_column_text(stmt, 4));
-
-        const char *created_at = reinterpret_cast<const char *>(sqlite3_column_text(stmt, 5));
-        if (created_at)
-            comp.created_at = created_at;
-
-        components.push_back(std::move(comp));
-    }
-
-    sqlite3_finalize(stmt);
-    return components;
-}
-
-std::vector<Component> Database::get_components_by_role(int gh_id, const std::string &role)
-{
-    std::lock_guard<std::mutex> lock(db_mutex_);
-    std::vector<Component> components;
-
-    const char *sql = "SELECT comp_id, gh_id, name, role, subtype, created_at FROM components WHERE gh_id = ? AND role = ? ORDER BY name";
-    sqlite3_stmt *stmt = prepare_statement(sql);
-    if (!stmt)
-        return components;
-
-    sqlite3_bind_int(stmt, 1, gh_id);
-    sqlite3_bind_text(stmt, 2, role.c_str(), -1, SQLITE_STATIC);
-
-    while (sqlite3_step(stmt) == SQLITE_ROW)
-    {
-        Component comp;
-        comp.comp_id = sqlite3_column_int(stmt, 0);
-        comp.gh_id = sqlite3_column_int(stmt, 1);
-        comp.name = reinterpret_cast<const char *>(sqlite3_column_text(stmt, 2));
-        comp.role = reinterpret_cast<const char *>(sqlite3_column_text(stmt, 3));
-        comp.subtype = reinterpret_cast<const char *>(sqlite3_column_text(stmt, 4));
-
-        const char *created_at = reinterpret_cast<const char *>(sqlite3_column_text(stmt, 5));
-        if (created_at)
-            comp.created_at = created_at;
-
-        components.push_back(std::move(comp));
-    }
-
-    sqlite3_finalize(stmt);
-    return components;
-}
-
-// === ОПЕРАЦИИ С МЕТРИКАМИ ===
-
-std::optional<int> Database::add_metric(const Metric &metric)
-{
-    std::lock_guard<std::mutex> lock(db_mutex_);
-
-    const char *sql = "INSERT INTO metrics (gh_id, ts, subtype, value) VALUES (?, ?, ?, ?)";
-    sqlite3_stmt *stmt = prepare_statement(sql);
-    if (!stmt)
-        return std::nullopt;
-
-    sqlite3_bind_int(stmt, 1, metric.gh_id);
-    sqlite3_bind_text(stmt, 2, metric.timestamp.c_str(), -1, SQLITE_STATIC);
-    sqlite3_bind_text(stmt, 3, metric.subtype.c_str(), -1, SQLITE_STATIC);
-    sqlite3_bind_double(stmt, 4, metric.value);
-
-    if (!execute_statement(stmt))
-    {
-        log_sqlite_error("add_metric");
-        sqlite3_finalize(stmt);
-        return std::nullopt;
-    }
-
-    int metric_id = static_cast<int>(sqlite3_last_insert_rowid(db_));
-    sqlite3_finalize(stmt);
-
-    return metric_id;
-}
-
-bool Database::add_metrics_batch(const std::vector<Metric> &metrics)
-{
-    if (metrics.empty())
-        return true;
-
-    std::lock_guard<std::mutex> lock(db_mutex_);
-
-    Transaction transaction(*this);
-    if (!transaction.is_valid())
-        return false;
-
-    const char *sql = "INSERT INTO metrics (gh_id, ts, subtype, value) VALUES (?, ?, ?, ?)";
-    sqlite3_stmt *stmt = prepare_statement(sql);
-    if (!stmt)
-        return false;
-
-    bool success = true;
-    for (const auto &metric : metrics)
-    {
-        sqlite3_bind_int(stmt, 1, metric.gh_id);
-        sqlite3_bind_text(stmt, 2, metric.timestamp.c_str(), -1, SQLITE_STATIC);
-        sqlite3_bind_text(stmt, 3, metric.subtype.c_str(), -1, SQLITE_STATIC);
-        sqlite3_bind_double(stmt, 4, metric.value);
-
-        if (!execute_statement(stmt))
+        const char *col_name = reinterpret_cast<const char *>(sqlite3_column_text(stmt, 1));
+        if (col_name && column_name == col_name)
         {
-            success = false;
+            exists = true;
             break;
         }
-
-        sqlite3_reset(stmt);
     }
 
-    sqlite3_finalize(stmt);
-
-    if (success)
-    {
-        transaction.commit();
-        LOG_DEBUG("Добавлено {} метрик в пакетном режиме", metrics.size());
-    }
-
-    return success;
+    finalize_statement(stmt);
+    return exists;
 }
 
-std::vector<Metric> Database::get_metrics(int gh_id,
-                                          const std::string &from_time,
-                                          const std::string &to_time,
-                                          const std::string &subtype)
+std::string Database::get_schema_version() const
 {
-    std::lock_guard<std::mutex> lock(db_mutex_);
-    std::vector<Metric> metrics;
+    const std::string sql = "SELECT version FROM schema_info ORDER BY applied_at DESC LIMIT 1";
 
-    std::string sql = "SELECT metric_id, gh_id, ts, subtype, value FROM metrics WHERE gh_id = ?";
-    std::vector<std::string> params;
-    params.push_back(std::to_string(gh_id));
-
-    if (!from_time.empty())
-    {
-        sql += " AND ts >= ?";
-        params.push_back(from_time);
-    }
-
-    if (!to_time.empty())
-    {
-        sql += " AND ts <= ?";
-        params.push_back(to_time);
-    }
-
-    if (!subtype.empty())
-    {
-        sql += " AND subtype = ?";
-        params.push_back(subtype);
-    }
-
-    sql += " ORDER BY ts";
-
-    sqlite3_stmt *stmt = prepare_statement(sql);
+    auto stmt = prepare_statement(sql);
     if (!stmt)
-        return metrics;
+        return "";
 
-    // Привязываем параметры
-    sqlite3_bind_int(stmt, 1, gh_id);
-    int param_index = 2;
-
-    if (!from_time.empty())
-    {
-        sqlite3_bind_text(stmt, param_index++, from_time.c_str(), -1, SQLITE_STATIC);
-    }
-
-    if (!to_time.empty())
-    {
-        sqlite3_bind_text(stmt, param_index++, to_time.c_str(), -1, SQLITE_STATIC);
-    }
-
-    if (!subtype.empty())
-    {
-        sqlite3_bind_text(stmt, param_index++, subtype.c_str(), -1, SQLITE_STATIC);
-    }
-
-    while (sqlite3_step(stmt) == SQLITE_ROW)
-    {
-        Metric metric;
-        metric.metric_id = sqlite3_column_int(stmt, 0);
-        metric.gh_id = sqlite3_column_int(stmt, 1);
-        metric.timestamp = reinterpret_cast<const char *>(sqlite3_column_text(stmt, 2));
-        metric.subtype = reinterpret_cast<const char *>(sqlite3_column_text(stmt, 3));
-        metric.value = sqlite3_column_double(stmt, 4);
-
-        metrics.push_back(std::move(metric));
-    }
-
-    sqlite3_finalize(stmt);
-    return metrics;
-}
-
-std::vector<Metric> Database::get_latest_metrics(int gh_id, int limit, const std::string &subtype)
-{
-    std::lock_guard<std::mutex> lock(db_mutex_);
-    std::vector<Metric> metrics;
-
-    std::string sql = "SELECT metric_id, gh_id, ts, subtype, value FROM metrics WHERE gh_id = ?";
-
-    if (!subtype.empty())
-    {
-        sql += " AND subtype = ?";
-    }
-
-    sql += " ORDER BY ts DESC LIMIT ?";
-
-    sqlite3_stmt *stmt = prepare_statement(sql);
-    if (!stmt)
-        return metrics;
-
-    int param_index = 1;
-    sqlite3_bind_int(stmt, param_index++, gh_id);
-
-    if (!subtype.empty())
-    {
-        sqlite3_bind_text(stmt, param_index++, subtype.c_str(), -1, SQLITE_STATIC);
-    }
-
-    sqlite3_bind_int(stmt, param_index, limit);
-
-    while (sqlite3_step(stmt) == SQLITE_ROW)
-    {
-        Metric metric;
-        metric.metric_id = sqlite3_column_int(stmt, 0);
-        metric.gh_id = sqlite3_column_int(stmt, 1);
-        metric.timestamp = reinterpret_cast<const char *>(sqlite3_column_text(stmt, 2));
-        metric.subtype = reinterpret_cast<const char *>(sqlite3_column_text(stmt, 3));
-        metric.value = sqlite3_column_double(stmt, 4);
-
-        metrics.push_back(std::move(metric));
-    }
-
-    sqlite3_finalize(stmt);
-
-    // Возвращаем в хронологическом порядке
-    std::reverse(metrics.begin(), metrics.end());
-    return metrics;
-}
-
-std::optional<Database::AggregatedData> Database::get_aggregated_metrics(int gh_id,
-                                                                         const std::string &subtype,
-                                                                         const std::string &from_time,
-                                                                         const std::string &to_time)
-{
-    std::lock_guard<std::mutex> lock(db_mutex_);
-
-    std::string sql = "SELECT AVG(value), MIN(value), MAX(value), COUNT(*) FROM metrics WHERE gh_id = ? AND subtype = ?";
-
-    if (!from_time.empty())
-    {
-        sql += " AND ts >= ?";
-    }
-
-    if (!to_time.empty())
-    {
-        sql += " AND ts <= ?";
-    }
-
-    sqlite3_stmt *stmt = prepare_statement(sql);
-    if (!stmt)
-        return std::nullopt;
-
-    int param_index = 1;
-    sqlite3_bind_int(stmt, param_index++, gh_id);
-    sqlite3_bind_text(stmt, param_index++, subtype.c_str(), -1, SQLITE_STATIC);
-
-    if (!from_time.empty())
-    {
-        sqlite3_bind_text(stmt, param_index++, from_time.c_str(), -1, SQLITE_STATIC);
-    }
-
-    if (!to_time.empty())
-    {
-        sqlite3_bind_text(stmt, param_index++, to_time.c_str(), -1, SQLITE_STATIC);
-    }
-
+    std::string version;
     if (sqlite3_step(stmt) == SQLITE_ROW)
     {
-        AggregatedData data;
-        data.avg_value = sqlite3_column_double(stmt, 0);
-        data.min_value = sqlite3_column_double(stmt, 1);
-        data.max_value = sqlite3_column_double(stmt, 2);
-        data.count = sqlite3_column_int(stmt, 3);
-
-        sqlite3_finalize(stmt);
-        return data;
+        const char *ver = reinterpret_cast<const char *>(sqlite3_column_text(stmt, 0));
+        if (ver)
+            version = ver;
     }
 
-    sqlite3_finalize(stmt);
-    return std::nullopt;
+    finalize_statement(stmt);
+    return version;
 }
 
-bool Database::cleanup_old_metrics(const std::string &before_date)
+bool Database::set_schema_version(const std::string &version)
 {
-    std::lock_guard<std::mutex> lock(db_mutex_);
+    const std::string sql = "INSERT OR REPLACE INTO schema_info (version) VALUES (?)";
 
-    const char *sql = "DELETE FROM metrics WHERE ts < ?";
-    sqlite3_stmt *stmt = prepare_statement(sql);
+    auto stmt = prepare_statement(sql);
     if (!stmt)
         return false;
 
-    sqlite3_bind_text(stmt, 1, before_date.c_str(), -1, SQLITE_STATIC);
+    sqlite3_bind_text(stmt, 1, version.c_str(), -1, SQLITE_TRANSIENT);
+    const bool success = execute_statement(stmt);
+    finalize_statement(stmt);
 
-    bool success = execute_statement(stmt);
-    if (success)
-    {
-        int deleted_count = sqlite3_changes(db_);
-        LOG_INFO("Удалено {} старых метрик до даты {}", deleted_count, before_date);
-    }
-
-    sqlite3_finalize(stmt);
     return success;
 }
 
-// === ОПЕРАЦИИ С ПРАВИЛАМИ ===
-
-std::optional<int> Database::create_rule(const Rule &rule)
+// Database information and maintenance
+Database::DatabaseInfo Database::get_database_info() const
 {
-    std::lock_guard<std::mutex> lock(db_mutex_);
+    DatabaseInfo info;
 
-    const char *sql = R"(INSERT INTO rules 
-                        (gh_id, name, from_comp_id, to_comp_id, kind, operator, threshold, time_spec, enabled, created_by) 
-                        VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?))";
-
-    sqlite3_stmt *stmt = prepare_statement(sql);
-    if (!stmt)
-        return std::nullopt;
-
-    sqlite3_bind_int(stmt, 1, rule.gh_id);
-    sqlite3_bind_text(stmt, 2, rule.name.c_str(), -1, SQLITE_STATIC);
-    sqlite3_bind_int(stmt, 3, rule.from_comp_id);
-    sqlite3_bind_int(stmt, 4, rule.to_comp_id);
-    sqlite3_bind_text(stmt, 5, rule.kind.c_str(), -1, SQLITE_STATIC);
-
-    if (!rule.operator_.empty())
+    // Get file size
+    try
     {
-        sqlite3_bind_text(stmt, 6, rule.operator_.c_str(), -1, SQLITE_STATIC);
+        if (fs::exists(db_path_))
+        {
+            info.total_size_bytes = fs::file_size(db_path_);
+        }
     }
-    else
+    catch (const std::exception &e)
     {
-        sqlite3_bind_null(stmt, 6);
+        LOG_WARN("Failed to get database file size: " + std::string(e.what()));
     }
 
-    if (rule.threshold.has_value())
+    // Count rows in each table
+    auto count_rows = [this](const std::string &table) -> std::int32_t
     {
-        sqlite3_bind_double(stmt, 7, rule.threshold.value());
-    }
-    else
-    {
-        sqlite3_bind_null(stmt, 7);
-    }
+        const std::string sql = "SELECT COUNT(*) FROM " + table;
+        auto stmt = prepare_statement(sql);
+        if (!stmt)
+            return 0;
 
-    if (rule.time_spec.has_value())
-    {
-        sqlite3_bind_text(stmt, 8, rule.time_spec.value().c_str(), -1, SQLITE_STATIC);
-    }
-    else
-    {
-        sqlite3_bind_null(stmt, 8);
-    }
+        std::int32_t count = 0;
+        if (sqlite3_step(stmt) == SQLITE_ROW)
+        {
+            count = sqlite3_column_int(stmt, 0);
+        }
+        finalize_statement(stmt);
+        return count;
+    };
 
-    sqlite3_bind_int(stmt, 9, rule.enabled ? 1 : 0);
+    info.greenhouse_count = count_rows("greenhouses");
+    info.component_count = count_rows("components");
+    info.metric_count = count_rows("metrics");
+    info.rule_count = count_rows("rules");
+    info.user_count = count_rows("users");
+    info.version = get_schema_version();
 
-    if (rule.created_by.has_value())
-    {
-        sqlite3_bind_int(stmt, 10, rule.created_by.value());
-    }
-    else
-    {
-        sqlite3_bind_null(stmt, 10);
-    }
-
-    if (!execute_statement(stmt))
-    {
-        log_sqlite_error("create_rule");
-        sqlite3_finalize(stmt);
-        return std::nullopt;
-    }
-
-    int rule_id = static_cast<int>(sqlite3_last_insert_rowid(db_));
-    sqlite3_finalize(stmt);
-
-    LOG_INFO("Создано правило ID={}, name={}", rule_id, rule.name);
-    return rule_id;
+    return info;
 }
 
-std::optional<Rule> Database::get_rule(int rule_id)
+bool Database::create_backup(const std::string &backup_path) const
 {
     std::lock_guard<std::mutex> lock(db_mutex_);
 
-    const char *sql = R"(SELECT rule_id, gh_id, name, from_comp_id, to_comp_id, kind, 
-                                operator, threshold, time_spec, enabled, created_by, created_at 
-                         FROM rules WHERE rule_id = ?)";
-
-    sqlite3_stmt *stmt = prepare_statement(sql);
-    if (!stmt)
-        return std::nullopt;
-
-    sqlite3_bind_int(stmt, 1, rule_id);
-
-    if (sqlite3_step(stmt) == SQLITE_ROW)
+    if (!db_)
     {
-        Rule rule;
-        rule.rule_id = sqlite3_column_int(stmt, 0);
-        rule.gh_id = sqlite3_column_int(stmt, 1);
-        rule.name = reinterpret_cast<const char *>(sqlite3_column_text(stmt, 2));
-        rule.from_comp_id = sqlite3_column_int(stmt, 3);
-        rule.to_comp_id = sqlite3_column_int(stmt, 4);
-        rule.kind = reinterpret_cast<const char *>(sqlite3_column_text(stmt, 5));
-
-        const char *operator_str = reinterpret_cast<const char *>(sqlite3_column_text(stmt, 6));
-        if (operator_str)
-            rule.operator_ = operator_str;
-
-        if (sqlite3_column_type(stmt, 7) != SQLITE_NULL)
-        {
-            rule.threshold = sqlite3_column_double(stmt, 7);
-        }
-
-        const char *time_spec = reinterpret_cast<const char *>(sqlite3_column_text(stmt, 8));
-        if (time_spec)
-            rule.time_spec = time_spec;
-
-        rule.enabled = sqlite3_column_int(stmt, 9) != 0;
-
-        if (sqlite3_column_type(stmt, 10) != SQLITE_NULL)
-        {
-            rule.created_by = sqlite3_column_int(stmt, 10);
-        }
-
-        const char *created_at = reinterpret_cast<const char *>(sqlite3_column_text(stmt, 11));
-        if (created_at)
-            rule.created_at = created_at;
-
-        sqlite3_finalize(stmt);
-        return rule;
-    }
-
-    sqlite3_finalize(stmt);
-    return std::nullopt;
-}
-
-std::vector<Rule> Database::get_rules_by_greenhouse(int gh_id)
-{
-    std::lock_guard<std::mutex> lock(db_mutex_);
-    std::vector<Rule> rules;
-
-    const char *sql = R"(SELECT rule_id, gh_id, name, from_comp_id, to_comp_id, kind, 
-                                operator, threshold, time_spec, enabled, created_by, created_at 
-                         FROM rules WHERE gh_id = ? ORDER BY name)";
-
-    sqlite3_stmt *stmt = prepare_statement(sql);
-    if (!stmt)
-        return rules;
-
-    sqlite3_bind_int(stmt, 1, gh_id);
-
-    while (sqlite3_step(stmt) == SQLITE_ROW)
-    {
-        Rule rule;
-        rule.rule_id = sqlite3_column_int(stmt, 0);
-        rule.gh_id = sqlite3_column_int(stmt, 1);
-        rule.name = reinterpret_cast<const char *>(sqlite3_column_text(stmt, 2));
-        rule.from_comp_id = sqlite3_column_int(stmt, 3);
-        rule.to_comp_id = sqlite3_column_int(stmt, 4);
-        rule.kind = reinterpret_cast<const char *>(sqlite3_column_text(stmt, 5));
-
-        const char *operator_str = reinterpret_cast<const char *>(sqlite3_column_text(stmt, 6));
-        if (operator_str)
-            rule.operator_ = operator_str;
-
-        if (sqlite3_column_type(stmt, 7) != SQLITE_NULL)
-        {
-            rule.threshold = sqlite3_column_double(stmt, 7);
-        }
-
-        const char *time_spec = reinterpret_cast<const char *>(sqlite3_column_text(stmt, 8));
-        if (time_spec)
-            rule.time_spec = time_spec;
-
-        rule.enabled = sqlite3_column_int(stmt, 9) != 0;
-
-        if (sqlite3_column_type(stmt, 10) != SQLITE_NULL)
-        {
-            rule.created_by = sqlite3_column_int(stmt, 10);
-        }
-
-        const char *created_at = reinterpret_cast<const char *>(sqlite3_column_text(stmt, 11));
-        if (created_at)
-            rule.created_at = created_at;
-
-        rules.push_back(std::move(rule));
-    }
-
-    sqlite3_finalize(stmt);
-    return rules;
-}
-
-std::vector<Rule> Database::get_active_rules(int gh_id)
-{
-    std::lock_guard<std::mutex> lock(db_mutex_);
-    std::vector<Rule> rules;
-
-    const char *sql = R"(SELECT rule_id, gh_id, name, from_comp_id, to_comp_id, kind, 
-                                operator, threshold, time_spec, enabled, created_by, created_at 
-                         FROM rules WHERE gh_id = ? AND enabled = 1 ORDER BY name)";
-
-    sqlite3_stmt *stmt = prepare_statement(sql);
-    if (!stmt)
-        return rules;
-
-    sqlite3_bind_int(stmt, 1, gh_id);
-
-    while (sqlite3_step(stmt) == SQLITE_ROW)
-    {
-        Rule rule;
-        rule.rule_id = sqlite3_column_int(stmt, 0);
-        rule.gh_id = sqlite3_column_int(stmt, 1);
-        rule.name = reinterpret_cast<const char *>(sqlite3_column_text(stmt, 2));
-        rule.from_comp_id = sqlite3_column_int(stmt, 3);
-        rule.to_comp_id = sqlite3_column_int(stmt, 4);
-        rule.kind = reinterpret_cast<const char *>(sqlite3_column_text(stmt, 5));
-
-        const char *operator_str = reinterpret_cast<const char *>(sqlite3_column_text(stmt, 6));
-        if (operator_str)
-            rule.operator_ = operator_str;
-
-        if (sqlite3_column_type(stmt, 7) != SQLITE_NULL)
-        {
-            rule.threshold = sqlite3_column_double(stmt, 7);
-        }
-
-        const char *time_spec = reinterpret_cast<const char *>(sqlite3_column_text(stmt, 8));
-        if (time_spec)
-            rule.time_spec = time_spec;
-
-        rule.enabled = sqlite3_column_int(stmt, 9) != 0;
-
-        if (sqlite3_column_type(stmt, 10) != SQLITE_NULL)
-        {
-            rule.created_by = sqlite3_column_int(stmt, 10);
-        }
-
-        const char *created_at = reinterpret_cast<const char *>(sqlite3_column_text(stmt, 11));
-        if (created_at)
-            rule.created_at = created_at;
-
-        rules.push_back(std::move(rule));
-    }
-
-    sqlite3_finalize(stmt);
-    return rules;
-}
-
-bool Database::toggle_rule(int rule_id, bool enabled)
-{
-    std::lock_guard<std::mutex> lock(db_mutex_);
-
-    const char *sql = "UPDATE rules SET enabled = ? WHERE rule_id = ?";
-    sqlite3_stmt *stmt = prepare_statement(sql);
-    if (!stmt)
+        LOG_ERROR("Database not connected");
         return false;
-
-    sqlite3_bind_int(stmt, 1, enabled ? 1 : 0);
-    sqlite3_bind_int(stmt, 2, rule_id);
-
-    bool success = execute_statement(stmt);
-    sqlite3_finalize(stmt);
-
-    if (success)
-    {
-        LOG_INFO("Правило ID={} {}", rule_id, enabled ? "включено" : "выключено");
     }
 
-    return success;
+    sqlite3 *backup_db = nullptr;
+    if (sqlite3_open(backup_path.c_str(), &backup_db) != SQLITE_OK)
+    {
+        LOG_ERROR("Failed to open backup database: " + backup_path);
+        return false;
+    }
+
+    sqlite3_backup *backup = sqlite3_backup_init(backup_db, "main", db_, "main");
+    if (!backup)
+    {
+        sqlite3_close(backup_db);
+        LOG_ERROR("Failed to initialize backup");
+        return false;
+    }
+
+    const int result = sqlite3_backup_step(backup, -1);
+    sqlite3_backup_finish(backup);
+    sqlite3_close(backup_db);
+
+    if (result != SQLITE_DONE)
+    {
+        LOG_ERROR("Backup failed with code: " + std::to_string(result));
+        return false;
+    }
+
+    LOG_INFO("Database backup created: " + backup_path);
+    return true;
 }
 
-// === ОПЕРАЦИИ С ПОЛЬЗОВАТЕЛЯМИ ===
-
-std::optional<int> Database::create_user(const User &user)
+bool Database::optimize()
 {
-    std::lock_guard<std::mutex> lock(db_mutex_);
+    LOG_INFO("Starting database optimization");
 
-    const char *sql = "INSERT INTO users (username, password_hash, role) VALUES (?, ?, ?)";
-    sqlite3_stmt *stmt = prepare_statement(sql);
-    if (!stmt)
-        return std::nullopt;
-
-    sqlite3_bind_text(stmt, 1, user.username.c_str(), -1, SQLITE_STATIC);
-    sqlite3_bind_text(stmt, 2, user.password_hash.c_str(), -1, SQLITE_STATIC);
-    sqlite3_bind_text(stmt, 3, user.role.c_str(), -1, SQLITE_STATIC);
-
-    if (!execute_statement(stmt))
+    if (!execute_sql("VACUUM;"))
     {
-        log_sqlite_error("create_user");
-        sqlite3_finalize(stmt);
-        return std::nullopt;
+        LOG_ERROR("VACUUM failed");
+        return false;
     }
 
-    int user_id = static_cast<int>(sqlite3_last_insert_rowid(db_));
-    sqlite3_finalize(stmt);
-
-    LOG_INFO("Создан пользователь ID={}, username={}, role={}", user_id, user.username, user.role);
-    return user_id;
-}
-
-std::optional<User> Database::get_user_by_username(const std::string &username)
-{
-    std::lock_guard<std::mutex> lock(db_mutex_);
-
-    const char *sql = "SELECT user_id, username, password_hash, role, created_at FROM users WHERE username = ?";
-    sqlite3_stmt *stmt = prepare_statement(sql);
-    if (!stmt)
-        return std::nullopt;
-
-    sqlite3_bind_text(stmt, 1, username.c_str(), -1, SQLITE_STATIC);
-
-    if (sqlite3_step(stmt) == SQLITE_ROW)
+    if (!execute_sql("ANALYZE;"))
     {
-        User user;
-        user.user_id = sqlite3_column_int(stmt, 0);
-        user.username = reinterpret_cast<const char *>(sqlite3_column_text(stmt, 1));
-        user.password_hash = reinterpret_cast<const char *>(sqlite3_column_text(stmt, 2));
-        user.role = reinterpret_cast<const char *>(sqlite3_column_text(stmt, 3));
-
-        const char *created_at = reinterpret_cast<const char *>(sqlite3_column_text(stmt, 4));
-        if (created_at)
-            user.created_at = created_at;
-
-        sqlite3_finalize(stmt);
-        return user;
+        LOG_ERROR("ANALYZE failed");
+        return false;
     }
 
-    sqlite3_finalize(stmt);
-    return std::nullopt;
+    LOG_INFO("Database optimization completed");
+    return true;
 }
 
-// === УТИЛИТЫ ===
-
+// Time utilities
 std::string Database::get_current_timestamp()
 {
     auto now = std::chrono::system_clock::now();
     auto time_t = std::chrono::system_clock::to_time_t(now);
-    auto ms = std::chrono::duration_cast<std::chrono::milliseconds>(
-                  now.time_since_epoch()) %
-              1000;
 
-    std::stringstream ss;
-    ss << std::put_time(std::localtime(&time_t), "%Y-%m-%d %H:%M:%S");
-    ss << '.' << std::setfill('0') << std::setw(3) << ms.count();
-
-    return ss.str();
+    std::ostringstream oss;
+    oss << std::put_time(std::localtime(&time_t), "%Y-%m-%d %H:%M:%S");
+    return oss.str();
 }
 
 bool Database::is_valid_time_range(const std::string &from_time, const std::string &to_time)
 {
-    if (from_time.empty() || to_time.empty())
-        return true;
-    return from_time <= to_time;
+    auto from_opt = parse_timestamp(from_time);
+    auto to_opt = parse_timestamp(to_time);
+
+    return from_opt.has_value() && to_opt.has_value() && from_opt.value() < to_opt.value();
 }
 
-bool Database::begin_transaction()
+std::optional<std::chrono::system_clock::time_point>
+Database::parse_timestamp(const std::string &timestamp)
 {
-    return execute_sql("BEGIN TRANSACTION");
+    std::tm tm = {};
+    std::istringstream ss(timestamp);
+    ss >> std::get_time(&tm, "%Y-%m-%d %H:%M:%S");
+
+    if (ss.fail())
+    {
+        return std::nullopt;
+    }
+
+    return std::chrono::system_clock::from_time_t(std::mktime(&tm));
 }
 
-bool Database::commit_transaction()
+// Error handling
+void Database::log_sqlite_error(const std::string &operation) const
 {
-    return execute_sql("COMMIT");
+    if (!db_)
+    {
+        LOG_ERROR("SQLite error in [" + operation + "]: Database not connected");
+        return;
+    }
+
+    const char *errMsg = sqlite3_errmsg(db_);
+    const int errCode = sqlite3_errcode(db_);
+
+    std::string fullMsg = "SQLite error in [" + operation + "] (code: " +
+                          std::to_string(errCode) + "): " +
+                          (errMsg ? errMsg : "Unknown error");
+
+    LOG_ERROR(fullMsg);
 }
 
-bool Database::rollback_transaction()
-{
-    return execute_sql("ROLLBACK");
-}
-
-Database::DatabaseInfo Database::get_database_info()
+std::string Database::get_last_error() const
 {
     std::lock_guard<std::mutex> lock(db_mutex_);
-    DatabaseInfo info;
 
-    // Получаем размер файла БД
-    const char *size_sql = "SELECT page_count * page_size FROM pragma_page_count(), pragma_page_size()";
-    sqlite3_stmt *stmt = prepare_statement(size_sql);
-    if (stmt && sqlite3_step(stmt) == SQLITE_ROW)
+    if (!db_)
     {
-        info.total_size_bytes = sqlite3_column_int64(stmt, 0);
+        return "Database not connected";
     }
-    if (stmt)
-        sqlite3_finalize(stmt);
 
-    // Считаем записи в таблицах
-    struct TableCount
+    const char *errMsg = sqlite3_errmsg(db_);
+    return errMsg ? errMsg : "Unknown error";
+}
+
+// Transaction RAII implementation
+Database::Transaction::Transaction(Database &db) : db_(db), success_(false), committed_(false)
+{
+    success_ = db_.begin_transaction();
+    if (!success_)
     {
-        const char *table;
-        int *count_ptr;
-    };
+        LOG_ERROR("Failed to begin transaction");
+    }
+}
 
-    std::vector<TableCount> tables = {
-        {"greenhouses", &info.greenhouse_count},
-        {"components", &info.component_count},
-        {"metrics", &info.metric_count},
-        {"rules", &info.rule_count},
-        {"users", &info.user_count}};
-
-    for (const auto &table : tables)
+Database::Transaction::~Transaction()
+{
+    if (success_ && !committed_)
     {
-        std::string count_sql = std::format("SELECT COUNT(*) FROM {}", table.table);
-        stmt = prepare_statement(count_sql);
-        if (stmt && sqlite3_step(stmt) == SQLITE_ROW)
+        if (!db_.rollback_transaction())
         {
-            *(table.count_ptr) = sqlite3_column_int(stmt, 0);
+            LOG_ERROR("Failed to rollback transaction in destructor");
         }
-        if (stmt)
-            sqlite3_finalize(stmt);
+    }
+}
+
+bool Database::Transaction::commit()
+{
+    if (!success_)
+    {
+        LOG_ERROR("Cannot commit invalid transaction");
+        return false;
     }
 
-    return info;
+    if (committed_)
+    {
+        LOG_WARN("Transaction already committed");
+        return true;
+    }
+
+    committed_ = true;
+    return db_.commit_transaction();
 }
