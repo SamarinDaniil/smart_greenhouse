@@ -9,8 +9,9 @@ struct User
     int user_id = -1;
     std::string username;
     std::string password_hash;
-    std::string role; // 'observer' или 'admin'
+    std::string role;          // 'observer' или 'admin'
     std::string created_at;
+    std::string updated_at;     // Добавлено поле
 
     User() = default;
     User(const std::string &user, const std::string &pass_hash, const std::string &r)
@@ -19,19 +20,29 @@ struct User
 
 inline void to_json(nlohmann::json& j, const User& u) {
     j = {
-        {"user_id",      u.user_id},
-        {"username",     u.username},
-        {"role",        u.role},
-        {"created_at",  u.created_at}
+        {"user_id",       u.user_id},
+        {"username",      u.username},
+        {"role",          u.role},
+        {"created_at",    u.created_at},
+        {"updated_at",    u.updated_at} 
     };
 }
 
 inline void from_json(const nlohmann::json& j, User& u) {
-    j.at("user_id").get_to(u.user_id);
-    j.at("username").get_to(u.username);
-    if (j.contains("password_hash")) j.at("password_hash").get_to(u.password_hash);
-    j.at("role").get_to(u.role);
-    j.at("created_at").get_to(u.created_at);
+    j.at("user_id")    .get_to(u.user_id);
+    j.at("username")   .get_to(u.username);
+    j.at("role")       .get_to(u.role);
+    j.at("created_at") .get_to(u.created_at);
+    j.at("updated_at") .get_to(u.updated_at);  
+    
+    // Пароль обрабатывается отдельно
+    if (j.contains("password")) {
+        // Здесь должен быть хешинг пароля
+        u.password_hash = j["password"].get<std::string>();
+    }
+    else if (j.contains("password_hash")) {
+        u.password_hash = j["password_hash"].get<std::string>();
+    }
 }
 
 #endif // USER_HPP
