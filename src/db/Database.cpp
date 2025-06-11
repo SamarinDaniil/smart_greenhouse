@@ -592,6 +592,17 @@ Database::parse_timestamp(const std::string &timestamp)
     return std::chrono::system_clock::from_time_t(std::mktime(&tm));
 }
 
+sqlite3_int64 Database::get_last_insert_rowid() const
+{
+    std::lock_guard<std::mutex> lock(db_mutex_);
+    if (!db_)
+    {
+        LOG_ERROR("Database not connected");
+        return -1;
+    }
+    return sqlite3_last_insert_rowid(db_);
+}
+
 // Error handling
 void Database::log_sqlite_error(const std::string &operation) const
 {

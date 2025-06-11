@@ -21,13 +21,14 @@
 #include "entities/Rule.hpp"
 #include "entities/User.hpp"
 
-
-#define CHECK_OP(expr) \
-    do { \
-        bool result = (expr); \
+#define CHECK_OP(expr)                                                         \
+    do                                                                         \
+    {                                                                          \
+        bool result = (expr);                                                  \
         std::cout << #expr << ": " << (result ? "OK" : "FAILED") << std::endl; \
-        if (!result) return false; \
-    } while(0)
+        if (!result)                                                           \
+            return false;                                                      \
+    } while (0)
 
 /**
  * @brief Thread-safe SQLite database wrapper for greenhouse management system
@@ -209,93 +210,98 @@ public:
      */
     static std::optional<std::chrono::system_clock::time_point>
     parse_timestamp(const std::string &timestamp);
+    sqlite3_int64 get_last_insert_rowid() const;
 
-    bool test_database_operations(Database &db) {
-        try {
-            
+    bool test_database_operations(Database &db)
+    {
+        try
+        {
+
             // 2. Инициализация схемы
             CHECK_OP(db.initialize());
-            
+
             // 3. Информация о БД
             auto info = db.get_database_info();
             std::cout << "Initial DB Info:" << std::endl;
             std::cout << "  Version: " << info.version << std::endl;
             std::cout << "  Greenhouses: " << info.greenhouse_count << std::endl;
             std::cout << "  Components: " << info.component_count << std::endl;
-            
+
             // 4. Транзакция: добавление данных
             {
                 Database::Transaction tx(db);
-                if (!tx.is_valid()) {
+                if (!tx.is_valid())
+                {
                     std::cerr << "Failed to start transaction" << std::endl;
                     return false;
                 }
-                
+
                 // Вставка теплицы
                 auto stmt = db.prepare_statement(
-                    "INSERT INTO greenhouses (name, location) VALUES (?, ?)"
-                );
-                if (!stmt) return false;
-                
+                    "INSERT INTO greenhouses (name, location) VALUES (?, ?)");
+                if (!stmt)
+                    return false;
+
                 sqlite3_bind_text(stmt, 1, "GH-Test", -1, SQLITE_TRANSIENT);
                 sqlite3_bind_text(stmt, 2, "Test Location", -1, SQLITE_TRANSIENT);
                 CHECK_OP(db.execute_statement(stmt));
                 db.finalize_statement(stmt);
-                
+
                 // Вставка компонента
                 stmt = db.prepare_statement(
-                    "INSERT INTO components (gh_id, name, role, subtype) VALUES (1, ?, ?, ?)"
-                );
-                if (!stmt) return false;
-                
+                    "INSERT INTO components (gh_id, name, role, subtype) VALUES (1, ?, ?, ?)");
+                if (!stmt)
+                    return false;
+
                 sqlite3_bind_text(stmt, 1, "Test Sensor", -1, SQLITE_TRANSIENT);
                 sqlite3_bind_text(stmt, 2, "sensor", -1, SQLITE_TRANSIENT);
                 sqlite3_bind_text(stmt, 3, "temperature", -1, SQLITE_TRANSIENT);
                 CHECK_OP(db.execute_statement(stmt));
                 db.finalize_statement(stmt);
-                
+
                 // Вставка метрики
                 stmt = db.prepare_statement(
-                    "INSERT INTO metrics (gh_id, ts, subtype, value) VALUES (1, ?, ?, ?)"
-                );
-                if (!stmt) return false;
-                
+                    "INSERT INTO metrics (gh_id, ts, subtype, value) VALUES (1, ?, ?, ?)");
+                if (!stmt)
+                    return false;
+
                 sqlite3_bind_text(stmt, 1, "2023-09-01 12:00:00", -1, SQLITE_TRANSIENT);
                 sqlite3_bind_text(stmt, 2, "temperature", -1, SQLITE_TRANSIENT);
                 sqlite3_bind_double(stmt, 3, 25.5);
                 CHECK_OP(db.execute_statement(stmt));
                 db.finalize_statement(stmt);
-                
+
                 CHECK_OP(tx.commit());
             }
-            
+
             // 5. Выборка данных
             auto stmt = db.prepare_statement(
-                "SELECT gh_id, name FROM greenhouses WHERE gh_id = 1"
-            );
-            if (!stmt) return false;
-            
-            if (sqlite3_step(stmt) == SQLITE_ROW) {
+                "SELECT gh_id, name FROM greenhouses WHERE gh_id = 1");
+            if (!stmt)
+                return false;
+
+            if (sqlite3_step(stmt) == SQLITE_ROW)
+            {
                 int gh_id = sqlite3_column_int(stmt, 0);
-                const char *name = reinterpret_cast<const char*>(sqlite3_column_text(stmt, 1));
+                const char *name = reinterpret_cast<const char *>(sqlite3_column_text(stmt, 1));
                 std::cout << "Found greenhouse: " << gh_id << " - " << name << std::endl;
             }
             db.finalize_statement(stmt);
-            
+
             // 6. Резервное копирование
             CHECK_OP(db.create_backup("test_greenhouse_backup.db"));
-            
+
             // 7. Оптимизация
             CHECK_OP(db.optimize());
-            
+
             return true;
         }
-        catch (const std::exception &e) {
+        catch (const std::exception &e)
+        {
             LOG_ERROR("Exception: {}" + std::string(e.what()));
             return false;
         }
     }
-
 
 private:
     sqlite3 *db_;
