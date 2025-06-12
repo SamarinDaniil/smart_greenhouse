@@ -10,7 +10,7 @@ set(CMAKE_CXX_COMPILER g++-13)
 
 #Поиск зависимостей
 find_package(libxcrypt REQUIRED)
-find_package(mqtt_cpp REQUIRED)
+find_package(PahoMqttCpp REQUIRED)
 find_package(nlohmann_json REQUIRED)
 find_package(Pistache REQUIRED)            
 find_package(SQLite3 REQUIRED)  
@@ -35,6 +35,7 @@ set(SOURCES
     src/db/managers/MetricManager.cpp
     src/db/managers/RuleManager.cpp
     src/db/managers/UserManager.cpp
+    src/mqtt_client/MQTTClient.cpp
 )
 
 set(HEADERS
@@ -52,6 +53,7 @@ set(HEADERS
     include/db/managers/MetricManager.hpp
     include/db/managers/RuleManager.hpp
     include/db/managers/UserManager.hpp
+    include/mqtt_client/MQTTClient.hpp
 )
 
 add_executable(smart_greenhouse ${SOURCES} ${HEADERS})
@@ -67,7 +69,7 @@ target_link_libraries(smart_greenhouse
         yaml-cpp::yaml-cpp
         Pistache::Pistache
         SQLite::SQLite3
-        mqtt_cpp::mqtt_cpp
+        PahoMqttCpp::paho-mqttpp3-static
     PUBLIC
         Boost::filesystem
         Boost::system

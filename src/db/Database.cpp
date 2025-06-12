@@ -146,7 +146,7 @@ bool Database::initialize()
             if (current_version != DATABASE_VERSION)
             {
                 LOG_WARN("Schema version mismatch: expected " + std::string(DATABASE_VERSION) +
-                            ", found " + current_version);
+                         ", found " + current_version);
                 // TODO: implement schema migration logic
             }
         }
@@ -221,8 +221,8 @@ bool Database::create_tables()
             rule_id       INTEGER PRIMARY KEY AUTOINCREMENT,  
             gh_id         INTEGER NOT NULL REFERENCES greenhouses(gh_id) ON DELETE CASCADE,  
             name          TEXT NOT NULL,  
-            from_comp_id  INTEGER NOT NULL REFERENCES components(comp_id),  
-            to_comp_id    INTEGER NOT NULL REFERENCES components(comp_id),  
+            from_comp_id INTEGER NOT NULL REFERENCES components(comp_id) ON DELETE CASCADE,
+            to_comp_id   INTEGER NOT NULL REFERENCES components(comp_id) ON DELETE CASCADE, 
             kind          TEXT NOT NULL CHECK(kind IN ('time','threshold')),  
             operator      TEXT CHECK(kind='threshold' AND operator IN ('>','>=','<','<=','=','!=')),  
             threshold     REAL,  
