@@ -9,6 +9,7 @@ set(CMAKE_EXPORT_COMPILE_COMMANDS ON)
 set(CMAKE_CXX_COMPILER g++-13)
 
 #Поиск зависимостей
+find_package(jwt-cpp REQUIRED)
 find_package(libxcrypt REQUIRED)
 find_package(PahoMqttCpp REQUIRED)
 find_package(nlohmann_json REQUIRED)
@@ -54,6 +55,9 @@ set(HEADERS
     include/db/managers/RuleManager.hpp
     include/db/managers/UserManager.hpp
     include/mqtt_client/MQTTClient.hpp
+
+    include/api/base_controller.hpp
+    include/api/greenhouse_controller.hpp
 )
 
 add_executable(smart_greenhouse ${SOURCES} ${HEADERS})
@@ -64,6 +68,7 @@ target_include_directories(smart_greenhouse PRIVATE
 
 target_link_libraries(smart_greenhouse
     PRIVATE
+        jwt-cpp::jwt-cpp
         libxcrypt::libxcrypt
         nlohmann_json::nlohmann_json
         yaml-cpp::yaml-cpp

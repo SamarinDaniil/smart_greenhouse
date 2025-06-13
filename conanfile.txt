@@ -6,6 +6,7 @@ pistache/cci.20201127
 nlohmann_json/3.12.0
 paho-mqtt-cpp/1.5.3
 libxcrypt/4.4.36
+jwt-cpp/0.7.1
 
 [options]
 *:cppstd=20

@@ -3,6 +3,9 @@
 #include "db/Database.hpp"
 #include "utils/Logger.hpp"
 
+#include <optional>
+#include <vector>
+
 class GreenhouseManager
 {
 public:
@@ -11,7 +14,7 @@ public:
     bool create(Greenhouse &greenhouse);
     bool update(const Greenhouse &greenhouse);
     bool remove(int gh_id);
-    Greenhouse get_by_id(int gh_id);
+    std::optional<Greenhouse> get_by_id(int gh_id);
     std::vector<Greenhouse> get_all();
 
 private:
