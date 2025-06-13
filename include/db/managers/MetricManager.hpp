@@ -82,6 +82,22 @@ public:
                                                       const std::string &from_time = "",
                                                       const std::string &to_time = "",
                                                       int limit = 1000);
+
+    /**
+     * @brief Получить последнюю метрику по идентификатору теплицы и подтипу.
+     *
+     * @param gh_id Идентификатор теплицы.
+     * @param subtype Подтип метрики.
+     * @param from_time (необязательно) Строка времени начала диапазона (формат ISO 8601).
+     * @param to_time (необязательно) Строка времени конца диапазона (формат ISO 8601).
+     * @return std::optional<Metric> Последняя (по времени) метрика, соответствующая условиям,
+     *         либо std::nullopt, если ничего не найдено.
+     */
+    std::optional<Metric> get_latest_by_greenhouse_and_subtype(int gh_id,
+                                                               const std::string &subtype,
+                                                               const std::string &from_time = "",
+                                                               const std::string &to_time = "");
+
     ///@}
 
     /** @name Агрегатные функции */
@@ -95,9 +111,9 @@ public:
      * @return Среднее значение или std::nullopt, если нет данных.
      */
     std::optional<double> get_average_value_by_greenhouse_and_subtype(int gh_id,
-                                                                      const std::string &subtype,
-                                                                      const std::string &from_time,
-                                                                      const std::string &to_time);
+                                                                        const std::string &subtype,
+                                                                        const std::string &from_time,
+                                                                        const std::string &to_time);
 
     /**
      * @brief Вычислить минимальное значение метрик для заданной теплицы и типа.
@@ -163,10 +179,10 @@ private:
      * @return Результат агрегирования или std::nullopt, если нет данных.
      */
     std::optional<double> get_aggregate_value(const std::string &agg_function,
-                                                         int gh_id,
-                                                         const std::string &subtype,
-                                                         const std::string &from_time,
-                                                         const std::string &to_time);
+                                              int gh_id,
+                                              const std::string &subtype,
+                                              const std::string &from_time,
+                                              const std::string &to_time);
 
     /**
      * @brief Распарсить одну запись из sqlite3_stmt в объект Metric.

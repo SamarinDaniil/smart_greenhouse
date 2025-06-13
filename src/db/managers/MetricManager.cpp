@@ -173,6 +173,45 @@ std::vector<Metric> MetricManager::get_by_greenhouse_and_subtype(int gh_id,
     return get_metrics_with_params(sql, params);
 }
 
+std::optional<Metric> MetricManager::get_latest_by_greenhouse_and_subtype(
+    int gh_id,
+    const std::string &subtype,
+    const std::string &from_time /* = "" */,
+    const std::string &to_time /* = "" */)
+{
+    std::string sql = R"(
+        SELECT metric_id, gh_id, ts, subtype, value
+        FROM   metrics
+        WHERE  gh_id = ? AND subtype = ?
+    )";
+
+    std::vector<std::pair<int, std::string>> params = {
+        {1, "I:" + std::to_string(gh_id)},
+        {2, "T:" + subtype}};
+
+    int idx = 3; // номер следующего параметра
+
+    if (!from_time.empty())
+    {
+        sql += " AND ts >= ?";
+        params.emplace_back(idx++, "T:" + from_time);
+    }
+
+    if (!to_time.empty())
+    {
+        sql += " AND ts <= ?";
+        params.emplace_back(idx++, "T:" + to_time);
+    }
+
+    sql += " ORDER BY ts DESC LIMIT 1";
+
+    auto metrics = get_metrics_with_params(sql, params);
+
+    if (!metrics.empty())
+        return metrics.front();
+    return std::nullopt;
+}
+
 std::optional<double> MetricManager::get_aggregate_value(const std::string &agg_function,
                                                          int gh_id,
                                                          const std::string &subtype,
