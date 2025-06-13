@@ -7,7 +7,7 @@
 /**
  * @class ComponentManager
  * @brief Менеджер компонентов для работы с таблицей components в базе данных
- * 
+ *
  * Предоставляет методы для выполнения CRUD операций и выполнения запросов к таблице components.
  */
 class ComponentManager
@@ -42,6 +42,16 @@ public:
      * @return true, если компонент успешно удален, иначе false
      */
     bool remove(int comp_id);
+
+    /**
+     * @brief Получает все компоненты из базы данных
+     *
+     * Выполняет SQL-запрос без фильтрации по теплице и возвращает
+     * полный список записей из таблицы components.
+     *
+     * @return std::vector<Component> Вектор всех компонентов.
+     */
+    std::vector<Component> get_all();
 
     /**
      * @brief Получает компонент по его идентификатору
@@ -113,7 +123,7 @@ public:
     int count_by_subtype(const std::string &subtype);
 
 private:
-    Database &db_;  ///< Ссылка на объект базы данных
+    Database &db_; ///< Ссылка на объект базы данных
 
     /**
      * @brief Парсит данные из SQL-запроса в объект Component

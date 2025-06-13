@@ -105,7 +105,7 @@ bool Database::initialize()
 {
     if (!is_connected())
     {
-        LOG_ERROR("Database not connected");
+        LOG_ERROR_SG("Database not connected");
         return false;
     }
 
@@ -114,7 +114,7 @@ bool Database::initialize()
         Transaction transaction(*this);
         if (!transaction.is_valid())
         {
-            LOG_ERROR("Failed to begin initialization transaction");
+            LOG_ERROR_SG("Failed to begin initialization transaction");
             return false;
         }
 
@@ -123,19 +123,19 @@ bool Database::initialize()
         {
             if (!create_tables())
             {
-                LOG_ERROR("Failed to create tables");
+                LOG_ERROR_SG("Failed to create tables");
                 return false;
             }
 
             if (!create_indexes())
             {
-                LOG_ERROR("Failed to create indexes");
+                LOG_ERROR_SG("Failed to create indexes");
                 return false;
             }
 
             if (!set_schema_version(DATABASE_VERSION))
             {
-                LOG_ERROR("Failed to set schema version");
+                LOG_ERROR_SG("Failed to set schema version");
                 return false;
             }
         }
@@ -145,7 +145,7 @@ bool Database::initialize()
             std::string current_version = get_schema_version();
             if (current_version != DATABASE_VERSION)
             {
-                LOG_WARN("Schema version mismatch: expected " + std::string(DATABASE_VERSION) +
+                LOG_WARN_SG("Schema version mismatch: expected " + std::string(DATABASE_VERSION) +
                          ", found " + current_version);
                 // TODO: implement schema migration logic
             }
@@ -153,16 +153,16 @@ bool Database::initialize()
 
         if (!transaction.commit())
         {
-            LOG_ERROR("Failed to commit initialization transaction");
+            LOG_ERROR_SG("Failed to commit initialization transaction");
             return false;
         }
 
-        LOG_INFO("Database initialized successfully");
+        LOG_INFO_SG("Database initialized successfully");
         return true;
     }
     catch (const std::exception &e)
     {
-        LOG_ERROR("Database initialization failed: " + std::string(e.what()));
+        LOG_ERROR_SG("Database initialization failed: " + std::string(e.what()));
         return false;
     }
 }
@@ -306,7 +306,7 @@ sqlite3_stmt *Database::prepare_statement(const std::string &sql) const
 
     if (!db_)
     {
-        LOG_ERROR("Database not connected");
+        LOG_ERROR_SG("Database not connected");
         return nullptr;
     }
 
@@ -324,7 +324,7 @@ bool Database::execute_statement(sqlite3_stmt *stmt) const
 {
     if (!stmt)
     {
-        LOG_ERROR("Null statement");
+        LOG_ERROR_SG("Null statement");
         return false;
     }
 
@@ -354,7 +354,7 @@ bool Database::execute_sql(const std::string &sql)
 
     if (!db_)
     {
-        LOG_ERROR("Database not connected");
+        LOG_ERROR_SG("Database not connected");
         return false;
     }
 
@@ -364,7 +364,7 @@ bool Database::execute_sql(const std::string &sql)
     if (result != SQLITE_OK)
     {
         std::string error = errMsg ? errMsg : "Unknown error";
-        LOG_ERROR("execute_sql failed: " + sql + " | Error: " + error);
+        LOG_ERROR_SG("execute_sql failed: " + sql + " | Error: " + error);
         if (errMsg)
         {
             sqlite3_free(errMsg);
@@ -469,7 +469,7 @@ Database::DatabaseInfo Database::get_database_info() const
     }
     catch (const std::exception &e)
     {
-        LOG_WARN("Failed to get database file size: " + std::string(e.what()));
+        LOG_WARN_SG("Failed to get database file size: " + std::string(e.what()));
     }
 
     // Count rows in each table
@@ -505,14 +505,14 @@ bool Database::create_backup(const std::string &backup_path) const
 
     if (!db_)
     {
-        LOG_ERROR("Database not connected");
+        LOG_ERROR_SG("Database not connected");
         return false;
     }
 
     sqlite3 *backup_db = nullptr;
     if (sqlite3_open(backup_path.c_str(), &backup_db) != SQLITE_OK)
     {
-        LOG_ERROR("Failed to open backup database: " + backup_path);
+        LOG_ERROR_SG("Failed to open backup database: " + backup_path);
         return false;
     }
 
@@ -520,7 +520,7 @@ bool Database::create_backup(const std::string &backup_path) const
     if (!backup)
     {
         sqlite3_close(backup_db);
-        LOG_ERROR("Failed to initialize backup");
+        LOG_ERROR_SG("Failed to initialize backup");
         return false;
     }
 
@@ -530,31 +530,31 @@ bool Database::create_backup(const std::string &backup_path) const
 
     if (result != SQLITE_DONE)
     {
-        LOG_ERROR("Backup failed with code: " + std::to_string(result));
+        LOG_ERROR_SG("Backup failed with code: " + std::to_string(result));
         return false;
     }
 
-    LOG_INFO("Database backup created: " + backup_path);
+    LOG_INFO_SG("Database backup created: " + backup_path);
     return true;
 }
 
 bool Database::optimize()
 {
-    LOG_INFO("Starting database optimization");
+    LOG_INFO_SG("Starting database optimization");
 
     if (!execute_sql("VACUUM;"))
     {
-        LOG_ERROR("VACUUM failed");
+        LOG_ERROR_SG("VACUUM failed");
         return false;
     }
 
     if (!execute_sql("ANALYZE;"))
     {
-        LOG_ERROR("ANALYZE failed");
+        LOG_ERROR_SG("ANALYZE failed");
         return false;
     }
 
-    LOG_INFO("Database optimization completed");
+    LOG_INFO_SG("Database optimization completed");
     return true;
 }
 
@@ -597,7 +597,7 @@ sqlite3_int64 Database::get_last_insert_rowid() const
     std::lock_guard<std::mutex> lock(db_mutex_);
     if (!db_)
     {
-        LOG_ERROR("Database not connected");
+        LOG_ERROR_SG("Database not connected");
         return -1;
     }
     return sqlite3_last_insert_rowid(db_);
@@ -608,7 +608,7 @@ void Database::log_sqlite_error(const std::string &operation) const
 {
     if (!db_)
     {
-        LOG_ERROR("SQLite error in [" + operation + "]: Database not connected");
+        LOG_ERROR_SG("SQLite error in [" + operation + "]: Database not connected");
         return;
     }
 
@@ -619,7 +619,7 @@ void Database::log_sqlite_error(const std::string &operation) const
                           std::to_string(errCode) + "): " +
                           (errMsg ? errMsg : "Unknown error");
 
-    LOG_ERROR(fullMsg);
+    LOG_ERROR_SG(fullMsg);
 }
 
 std::string Database::get_last_error() const
@@ -641,7 +641,7 @@ Database::Transaction::Transaction(Database &db) : db_(db), success_(false), com
     success_ = db_.begin_transaction();
     if (!success_)
     {
-        LOG_ERROR("Failed to begin transaction");
+        LOG_ERROR_SG("Failed to begin transaction");
     }
 }
 
@@ -651,7 +651,7 @@ Database::Transaction::~Transaction()
     {
         if (!db_.rollback_transaction())
         {
-            LOG_ERROR("Failed to rollback transaction in destructor");
+            LOG_ERROR_SG("Failed to rollback transaction in destructor");
         }
     }
 }
@@ -660,13 +660,13 @@ bool Database::Transaction::commit()
 {
     if (!success_)
     {
-        LOG_ERROR("Cannot commit invalid transaction");
+        LOG_ERROR_SG("Cannot commit invalid transaction");
         return false;
     }
 
     if (committed_)
     {
-        LOG_WARN("Transaction already committed");
+        LOG_WARN_SG("Transaction already committed");
         return true;
     }
 

@@ -22,7 +22,7 @@ bool MetricManager::create(Metric &metric)
 
     if (!db_.execute_statement(stmt.get()))
     {
-        LOG_ERROR("Failed to insert metric");
+        LOG_ERROR_SG("Failed to insert metric");
         return false;
     }
 
@@ -59,7 +59,7 @@ bool MetricManager::create_batch(const std::vector<Metric> &metrics)
 
         if (sqlite3_step(stmt.get()) != SQLITE_DONE)
         {
-            LOG_ERROR("Batch insert failed at step");
+            LOG_ERROR_SG("Batch insert failed at step");
             return false;
         }
     }
@@ -199,7 +199,7 @@ std::optional<double> MetricManager::get_aggregate_value(const std::string &agg_
     SQLiteStmt stmt(db_.prepare_statement(sql));
     if (!stmt)
     {
-        LOG_ERROR("Failed to prepare statement for %s", agg_function.c_str());
+        LOG_ERROR_SG("Failed to prepare statement for %s", agg_function.c_str());
         return std::nullopt;
     }
 
@@ -215,7 +215,7 @@ std::optional<double> MetricManager::get_aggregate_value(const std::string &agg_
             }
             catch (...)
             {
-                LOG_ERROR("Invalid integer parameter: %s", value + 2);
+                LOG_ERROR_SG("Invalid integer parameter: %s", value + 2);
                 return std::nullopt;
             }
         }
@@ -227,7 +227,7 @@ std::optional<double> MetricManager::get_aggregate_value(const std::string &agg_
 
     if (sqlite3_step(stmt.get()) != SQLITE_ROW)
     {
-        LOG_DEBUG("No result for %s", agg_function.c_str());
+        LOG_DEBUG_SG("No result for %s", agg_function.c_str());
         return std::nullopt;
     }
 
@@ -309,7 +309,7 @@ std::vector<Metric> MetricManager::get_metrics_with_params(
             }
             catch (...)
             {
-                LOG_ERROR("Invalid integer parameter: %s", value + 2);
+                LOG_ERROR_SG("Invalid integer parameter: %s", value + 2);
                 return {};
             }
         }

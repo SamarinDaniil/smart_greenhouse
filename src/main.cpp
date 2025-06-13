@@ -18,7 +18,7 @@ void handle_signal(int signal) {
 int main(int argc, char *argv[]) {
     std::cout << "Smart Greenhouse server: build successful!\n";
     Config config;
-    INIT_LOGGER_DEFAULT();
+    INIT_LOGGER_DEFAULT_SG();
     
     // Установка обработчика сигналов
     std::signal(SIGINT, handle_signal);
@@ -29,10 +29,10 @@ int main(int argc, char *argv[]) {
         const std::string configDir = (argc > 1) ? argv[1] : "./config";
         config = ConfigLoader::load(configDir);
 
-        LOG_INFO("Starting Greenhouse Control System...");
+        LOG_INFO_SG("Starting Greenhouse Control System...");
     }
     catch (const std::exception &e) {
-        LOG_ERROR("Fatal error: {}", e.what());
+        LOG_ERROR_SG("Fatal error: {}", e.what());
         return 1;
     }
 
@@ -55,7 +55,7 @@ int main(int argc, char *argv[]) {
         ioc.run();
     });
 
-    LOG_INFO("Server is running. Press Ctrl+C to stop...");
+    LOG_INFO_SG("Server is running. Press Ctrl+C to stop...");
 
     // Основной цикл ожидания сигнала завершения
     while (running) {
@@ -63,12 +63,12 @@ int main(int argc, char *argv[]) {
     }
 
     // Остановка сервера
-    LOG_INFO("Shutting down server...");
+    LOG_INFO_SG("Shutting down server...");
     ioc.stop();
     if (ioc_thread.joinable()) {
         ioc_thread.join();
     }
 
-    LOG_INFO("Server stopped successfully");
+    LOG_INFO_SG("Server stopped successfully");
     return 0;
 }

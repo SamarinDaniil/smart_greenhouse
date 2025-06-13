@@ -187,15 +187,15 @@ private:
 };
 
 // Удобные макросы для логирования
-#define LOG_TRACE(...) Logger::instance().log(LogLevel::TRACE, __VA_ARGS__)
-#define LOG_DEBUG(...) Logger::instance().log(LogLevel::DEBUG, __VA_ARGS__)
-#define LOG_INFO(...) Logger::instance().log(LogLevel::INFO, __VA_ARGS__)
-#define LOG_WARN(...) Logger::instance().log(LogLevel::WARNING, __VA_ARGS__)
-#define LOG_ERROR(...) Logger::instance().log(LogLevel::ERROR, __VA_ARGS__)
-#define LOG_FATAL(...) Logger::instance().log(LogLevel::FATAL, __VA_ARGS__)
+#define LOG_TRACE_SG(...) Logger::instance().log(LogLevel::TRACE, __VA_ARGS__)
+#define LOG_DEBUG_SG(...) Logger::instance().log(LogLevel::DEBUG, __VA_ARGS__)
+#define LOG_INFO_SG(...) Logger::instance().log(LogLevel::INFO, __VA_ARGS__)
+#define LOG_WARN_SG(...) Logger::instance().log(LogLevel::WARNING, __VA_ARGS__)
+#define LOG_ERROR_SG(...) Logger::instance().log(LogLevel::ERROR, __VA_ARGS__)
+#define LOG_FATAL_SG(...) Logger::instance().log(LogLevel::FATAL, __VA_ARGS__)
 
 // Инициализация логгера
-#define INIT_LOGGER(file, level, console, size) Logger::instance().initialize(file, level, console, size)
-#define INIT_LOGGER_DEFAULT() Logger::instance().initialize()
+#define INIT_LOGGER_SG(file, level, console, size) Logger::instance().initialize(file, level, console, size)
+#define INIT_LOGGER_DEFAULT_SG() Logger::instance().initialize()
 
 #endif // LOGGER_HPP

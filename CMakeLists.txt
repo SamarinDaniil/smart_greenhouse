@@ -9,7 +9,7 @@ set(CMAKE_EXPORT_COMPILE_COMMANDS ON)
 set(CMAKE_CXX_COMPILER g++-13)
 
 #Поиск зависимостей
-find_package(jwt-cpp REQUIRED)
+find_package(cpp-jwt REQUIRED)
 find_package(libxcrypt REQUIRED)
 find_package(PahoMqttCpp REQUIRED)
 find_package(nlohmann_json REQUIRED)
@@ -37,11 +37,19 @@ set(SOURCES
     src/db/managers/RuleManager.cpp
     src/db/managers/UserManager.cpp
     src/mqtt_client/MQTTClient.cpp
+
+    src/utils/PasswordHasher.cpp
+
+    src/api/BaseController.cpp
+    src//api/GreenhouseController.cpp
+    src//api/MetricController.cpp
 )
 
 set(HEADERS
     include/utils/Logger.hpp
     include/utils/PasswordHasher.hpp
+    include/utils/TimeParserISO8601.hpp
+
     include/config/ConfigLoader.hpp
     include/db/Database.hpp
     include/entities/Greenhouse.hpp
@@ -56,8 +64,12 @@ set(HEADERS
     include/db/managers/UserManager.hpp
     include/mqtt_client/MQTTClient.hpp
 
-    include/api/base_controller.hpp
-    include/api/greenhouse_controller.hpp
+    include/api/BaseController.hpp
+    include/api/GreenhouseController.hpp
+    include/api/component_controller.hpp
+    include/api/rule_controller.hpp
+    include/api/MetricController.hpp
+    include/api/user_controller.hpp
 )
 
 add_executable(smart_greenhouse ${SOURCES} ${HEADERS})
@@ -68,7 +80,7 @@ target_include_directories(smart_greenhouse PRIVATE
 
 target_link_libraries(smart_greenhouse
     PRIVATE
-        jwt-cpp::jwt-cpp
+        cpp-jwt::cpp-jwt
         libxcrypt::libxcrypt
         nlohmann_json::nlohmann_json
         yaml-cpp::yaml-cpp

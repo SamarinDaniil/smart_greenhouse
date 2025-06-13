@@ -10,7 +10,7 @@ bool GreenhouseManager::create(Greenhouse &greenhouse)
     SQLiteStmt stmt(db_.prepare_statement(sql));
     if (!stmt)
     {
-        LOG_ERROR("Failed to prepare statement for Greenhouse::create");
+        LOG_ERROR_SG("Failed to prepare statement for Greenhouse::create");
         return false;
     }
 
@@ -19,7 +19,7 @@ bool GreenhouseManager::create(Greenhouse &greenhouse)
 
     if (!db_.execute_statement(stmt.get()))
     {
-        LOG_ERROR("Failed to execute statement for Greenhouse::create");
+        LOG_ERROR_SG("Failed to execute statement for Greenhouse::create");
         return false;
     }
 
@@ -29,7 +29,7 @@ bool GreenhouseManager::create(Greenhouse &greenhouse)
     auto updated_greenhouse = get_by_id(greenhouse.gh_id);
     if (!updated_greenhouse)
     {
-        LOG_WARN("Failed to reload greenhouse after creation");
+        LOG_WARN_SG("Failed to reload greenhouse after creation");
         return false;
     }
 
@@ -48,7 +48,7 @@ bool GreenhouseManager::update(const Greenhouse &greenhouse)
     SQLiteStmt stmt(db_.prepare_statement(sql));
     if (!stmt)
     {
-        LOG_ERROR("Failed to prepare statement for Greenhouse::update");
+        LOG_ERROR_SG("Failed to prepare statement for Greenhouse::update");
         return false;
     }
 
@@ -65,7 +65,7 @@ bool GreenhouseManager::remove(int gh_id)
     SQLiteStmt stmt(db_.prepare_statement(sql));
     if (!stmt)
     {
-        LOG_ERROR("Failed to prepare statement for Greenhouse::remove");
+        LOG_ERROR_SG("Failed to prepare statement for Greenhouse::remove");
         return false;
     }
 
@@ -83,7 +83,7 @@ std::optional<Greenhouse> GreenhouseManager::get_by_id(int gh_id)
     SQLiteStmt stmt(db_.prepare_statement(sql));
     if (!stmt)
     {
-        LOG_ERROR("Failed to prepare statement for Greenhouse::get_by_id");
+        LOG_ERROR_SG("Failed to prepare statement for Greenhouse::get_by_id");
         return std::nullopt;
     }
 
@@ -111,7 +111,7 @@ std::vector<Greenhouse> GreenhouseManager::get_all()
     SQLiteStmt stmt(db_.prepare_statement(sql));
     if (!stmt)
     {
-        LOG_ERROR("Failed to prepare statement for Greenhouse::get_all");
+        LOG_ERROR_SG("Failed to prepare statement for Greenhouse::get_all");
         return greenhouses;
     }
 

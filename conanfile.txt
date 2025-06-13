@@ -2,11 +2,11 @@
 boost/1.83.0
 yaml-cpp/0.7.0
 sqlite3/3.39.2
-pistache/cci.20201127
-nlohmann_json/3.12.0
+pistache/0.4.25
+nlohmann_json/3.11.3
 paho-mqtt-cpp/1.5.3
 libxcrypt/4.4.36
-jwt-cpp/0.7.1
+cpp-jwt/1.4
 
 [options]
 *:cppstd=20

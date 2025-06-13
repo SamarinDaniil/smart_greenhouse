@@ -104,13 +104,13 @@ private:
         }
         catch (const fs::filesystem_error &e)
         {
-            LOG_FATAL("Invalid configDir {}: {}", dir, e.what());
+            LOG_FATAL_SG("Invalid configDir {}: {}", dir, e.what());
             throw ConfigError("Bad configDir");
         }
         fs::path cfg = base / "config.yaml";
         if (!fs::exists(cfg))
         {
-            LOG_FATAL("Config file not found: {}", cfg.string());
+            LOG_FATAL_SG("Config file not found: {}", cfg.string());
             throw ConfigError("Config file not found");
         }
         return cfg;
@@ -129,7 +129,7 @@ private:
         }
         catch (const YAML::Exception &e)
         {
-            LOG_FATAL("YAML parsing error: {}", e.what());
+            LOG_FATAL_SG("YAML parsing error: {}", e.what());
             throw ConfigError(std::string("YAML parse failed: ") + e.what());
         }
     }
@@ -141,7 +141,7 @@ private:
         auto sub = node[key];
         if (!sub)
         {
-            LOG_FATAL("Missing required field: {}", key);
+            LOG_FATAL_SG("Missing required field: {}", key);
             throw ConfigError(std::string("Missing field: ") + key);
         }
         return sub.as<T>();
@@ -153,7 +153,7 @@ private:
         auto sub = node[key];
         if (!sub)
         {
-            LOG_DEBUG("Default for {}: {}", key, def);
+            LOG_DEBUG_SG("Default for {}: {}", key, def);
             return def;
         }
         return sub.as<T>();
@@ -163,7 +163,7 @@ private:
     {
         if (v < 0 || v > 2)
         {
-            LOG_WARN("Invalid QoS {} -> default 1", v);
+            LOG_WARN_SG("Invalid QoS {} -> default 1", v);
             v = 1;
         }
         return static_cast<int8_t>(v);
@@ -173,7 +173,7 @@ private:
     {
         if (v < 10 || v > 1200)
         {
-            LOG_WARN("Invalid keep_alive {} -> default 60", v);
+            LOG_WARN_SG("Invalid keep_alive {} -> default 60", v);
             v = 60;
         }
         return v;
@@ -183,7 +183,7 @@ private:
     {
         if (v < 1 || v > 65535)
         {
-            LOG_WARN("Invalid port {} -> default 8080", v);
+            LOG_WARN_SG("Invalid port {} -> default 8080", v);
             v = 8080;
         }
         return v;
@@ -213,7 +213,7 @@ private:
                 auto topic = valueNode.as<std::string>();
                 if (!TopicValidator::isValid(topic))
                 {
-                    LOG_ERROR("Invalid MQTT topic: {}", topic);
+                    LOG_ERROR_SG("Invalid MQTT topic: {}", topic);
                     throw ConfigError("Bad topic");
                 }
                 m.topics.emplace(std::move(key), std::move(topic));
@@ -241,7 +241,7 @@ private:
         s.port = validatePort(getOr<int>(n, "port", s.port));
         s.jwt_secret = require<std::string>(n, "jwt_secret");
         if (s.jwt_secret.size() < 32)
-            LOG_WARN("JWT secret too short");
+            LOG_WARN_SG("JWT secret too short");
     }
 
     static void parseAdmin(const YAML::Node &root, AdminUser &a)
@@ -254,7 +254,7 @@ private:
         std::string pwd = require<std::string>(n, "password");
         if (pwd.size() < 8)
         {
-            LOG_ERROR("Admin password too short");
+            LOG_ERROR_SG("Admin password too short");
             throw ConfigError("Weak admin password");
         }
         a.password_hash = PasswordHasher::generate_hash(pwd);
@@ -264,26 +264,26 @@ private:
 
     static void logLoaded(const Config &c)
     {
-        LOG_INFO("=== Loaded Config ===");
-        LOG_INFO(
+        LOG_INFO_SG("=== Loaded Config ===");
+        LOG_INFO_SG(
             "[MQTT] Broker={}, ClientId={}, QoS={}, User={}, Keep={}, Clean={}",
             c.mqtt.broker, c.mqtt.client_id, static_cast<int>(c.mqtt.qos),
             c.mqtt.username.empty() ? "-" : "*", c.mqtt.keep_alive,
             c.mqtt.clean_session);
         for (const auto &topic : c.mqtt.topics)
         {
-            LOG_INFO("Topic {}: {}", topic.first, topic.second);
+            LOG_INFO_SG("Topic {}: {}", topic.first, topic.second);
         }
 
-        LOG_INFO("[DB] Path={}", c.db.path);
+        LOG_INFO_SG("[DB] Path={}", c.db.path);
 
-        LOG_INFO("[Server] Host={}, Port={}, JWT={}", c.server.host, c.server.port,
+        LOG_INFO_SG("[Server] Host={}, Port={}, JWT={}", c.server.host, c.server.port,
                  c.server.jwt_secret.empty() ? "-" : "*");
 
-        LOG_INFO("[Admin] User={}, Hash={}", c.admin.username,
+        LOG_INFO_SG("[Admin] User={}, Hash={}", c.admin.username,
                  c.admin.password_hash.empty() ? "-" : "*");
 
-        LOG_INFO("======================");
+        LOG_INFO_SG("======================");
     }
 };
 

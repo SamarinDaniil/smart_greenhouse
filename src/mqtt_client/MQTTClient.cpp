@@ -41,7 +41,7 @@ MQTTClient::~MQTTClient() {
 
 void MQTTClient::start() {
     if (stopping_) return;
-    LOG_INFO("MQTTClient: connecting to {}", cfg_.broker);
+    LOG_INFO_SG("MQTTClient: connecting to {}", cfg_.broker);
     do_connect();
 }
 
@@ -51,10 +51,10 @@ void MQTTClient::stop() {
     if (client_ && client_->is_connected()) {
         try {
             client_->disconnect()->wait_for(3s);
-            LOG_INFO("MQTTClient: disconnected");
+            LOG_INFO_SG("MQTTClient: disconnected");
         }
         catch (const mqtt::exception& e) {
-            LOG_ERROR("MQTTClient disconnect error: {}", e.what());
+            LOG_ERROR_SG("MQTTClient disconnect error: {}", e.what());
         }
     }
 }
@@ -63,7 +63,7 @@ void MQTTClient::publish_command(const std::string& gh_id,
                                  const std::string& cmd)
 {
     if (!client_->is_connected()) {
-        LOG_WARN("MQTTClient: not connected, cannot publish");
+        LOG_WARN_SG("MQTTClient: not connected, cannot publish");
         return;
     }
     
@@ -73,13 +73,13 @@ void MQTTClient::publish_command(const std::string& gh_id,
     
     try {
         client_->publish(msg)->wait_for(3s);
-        LOG_DEBUG("MQTTClient: published {} => {}", topic, cmd);
+        LOG_DEBUG_SG("MQTTClient: published {} => {}", topic, cmd);
     }
     catch (const mqtt::exception& e) {
-        LOG_ERROR("MQTTClient publish error: {}", e.what());
+        LOG_ERROR_SG("MQTTClient publish error: {}", e.what());
     }
     catch (const std::exception& e) {
-        LOG_ERROR("MQTTClient publish unexpected error: {}", e.what());
+        LOG_ERROR_SG("MQTTClient publish unexpected error: {}", e.what());
     }
 }
 
@@ -88,8 +88,8 @@ void MQTTClient::publish_command(const std::string& gh_id,
 void MQTTClient::do_connect() {
     if (stopping_) return;
 
-    LOG_INFO("Connecting to {}", cfg_.broker);
-    LOG_INFO("  clean_session={}, keep_alive={}, username={}",
+    LOG_INFO_SG("Connecting to {}", cfg_.broker);
+    LOG_INFO_SG("  clean_session={}, keep_alive={}, username={}",
              cfg_.clean_session,
              cfg_.keep_alive,
              cfg_.username.empty() ? "<none>" : cfg_.username);
@@ -98,22 +98,22 @@ void MQTTClient::do_connect() {
         client_->connect(conn_opts_, nullptr, *this);
     }
     catch (const mqtt::exception& e) {
-        LOG_ERROR("Exception on connect(): {}", e.what());
+        LOG_ERROR_SG("Exception on connect(): {}", e.what());
         schedule_reconnect();
     }
     catch (const std::exception& e) {
-        LOG_ERROR("Unexpected exception on connect(): {}", e.what());
+        LOG_ERROR_SG("Unexpected exception on connect(): {}", e.what());
         schedule_reconnect();
     }
 }
 
 void MQTTClient::connected(const std::string& cause) {
-    LOG_INFO("MQTTClient: connected ({})", cause);
+    LOG_INFO_SG("MQTTClient: connected ({})", cause);
     do_subscribe();
 }
 
 void MQTTClient::connection_lost(const std::string& cause) {
-    LOG_ERROR("MQTTClient: connection lost ({})", cause);
+    LOG_ERROR_SG("MQTTClient: connection lost ({})", cause);
     if (!stopping_) {
         schedule_reconnect();
     }
@@ -123,7 +123,7 @@ void MQTTClient::message_arrived(mqtt::const_message_ptr msg) {
     auto topic = msg->get_topic();
     auto payload = msg->to_string();
     
-    LOG_DEBUG("MQTTClient: received message on {}: {}", topic, payload);
+    LOG_DEBUG_SG("MQTTClient: received message on {}: {}", topic, payload);
     
     try {
         std::smatch m;
@@ -134,17 +134,17 @@ void MQTTClient::message_arrived(mqtt::const_message_ptr msg) {
             command_cb_(m[1].str(), payload);
         }
         else {
-            LOG_WARN("MQTTClient: unmatched topic: {}", topic);
+            LOG_WARN_SG("MQTTClient: unmatched topic: {}", topic);
         }
     }
     catch (const std::exception& e) {
-        LOG_ERROR("MQTTClient message error: {}", e.what());
+        LOG_ERROR_SG("MQTTClient message error: {}", e.what());
     }
 }
 
 void MQTTClient::on_failure(const mqtt::token& tok) {
     int rc = tok.get_return_code();
-    LOG_ERROR("Connect failed (id={}): {} [{}]",
+    LOG_ERROR_SG("Connect failed (id={}): {} [{}]",
               tok.get_message_id(),
               rc_to_string(rc),
               rc);
@@ -155,7 +155,7 @@ void MQTTClient::on_failure(const mqtt::token& tok) {
 }
 
 void MQTTClient::on_success(const mqtt::token& tok) {
-    LOG_DEBUG("MQTTClient connect succeeded (id={})",
+    LOG_DEBUG_SG("MQTTClient connect succeeded (id={})",
               tok.get_message_id());
 }
 
@@ -163,23 +163,23 @@ void MQTTClient::do_subscribe() {
     try {
         auto met_t = resolve_topic(cfg_.topics.at("metrics"), "+");
         client_->subscribe(met_t, cfg_.qos)->wait_for(3s);
-        LOG_INFO("MQTTClient subscribed to {}", met_t);
+        LOG_INFO_SG("MQTTClient subscribed to {}", met_t);
 
         if (command_cb_) {
             auto cmd_t = resolve_topic(cfg_.topics.at("command"), "+");
             client_->subscribe(cmd_t, cfg_.qos)->wait_for(3s);
-            LOG_INFO("MQTTClient subscribed to {}", cmd_t);
+            LOG_INFO_SG("MQTTClient subscribed to {}", cmd_t);
         }
     }
     catch (const mqtt::exception& e) {
-        LOG_ERROR("MQTTClient subscribe error: {}", e.what());
+        LOG_ERROR_SG("MQTTClient subscribe error: {}", e.what());
         // Переподключаемся при ошибке подписки
         if (!stopping_) {
             schedule_reconnect();
         }
     }
     catch (const std::exception& e) {
-        LOG_ERROR("MQTTClient subscribe unexpected error: {}", e.what());
+        LOG_ERROR_SG("MQTTClient subscribe unexpected error: {}", e.what());
         if (!stopping_) {
             schedule_reconnect();
         }
@@ -189,15 +189,15 @@ void MQTTClient::do_subscribe() {
 void MQTTClient::schedule_reconnect() {
     if (stopping_) return;
     
-    LOG_INFO("MQTTClient: scheduling reconnect in 5 seconds...");
+    LOG_INFO_SG("MQTTClient: scheduling reconnect in 5 seconds...");
     reconnect_timer_.expires_after(5s);
     reconnect_timer_.async_wait([this](const boost::system::error_code& ec) {
         if (!ec && !stopping_) {
-            LOG_INFO("MQTTClient: reconnecting...");
+            LOG_INFO_SG("MQTTClient: reconnecting...");
             do_connect();
         }
         else if (ec && ec != boost::asio::error::operation_aborted) {
-            LOG_ERROR("MQTTClient: reconnect timer error: {}", ec.message());
+            LOG_ERROR_SG("MQTTClient: reconnect timer error: {}", ec.message());
         }
     });
 }

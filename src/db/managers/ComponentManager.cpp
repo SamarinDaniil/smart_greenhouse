@@ -66,6 +66,18 @@ bool ComponentManager::remove(int comp_id)
     return db_.execute_statement(stmt.get());
 }
 
+std::vector<Component> ComponentManager::get_all() {
+    const std::string sql = R"(
+        SELECT comp_id, gh_id, name, role, subtype, created_at, updated_at
+        FROM components
+    )";
+    SQLiteStmt stmt(db_.prepare_statement(sql));
+    std::vector<Component> components;
+    while (sqlite3_step(stmt.get()) == SQLITE_ROW)
+        components.push_back(parse_component_from_db(stmt.get()));
+    return components;
+}
+
 std::optional<Component> ComponentManager::get_by_id(int comp_id)
 {
     const std::string sql = R"(
