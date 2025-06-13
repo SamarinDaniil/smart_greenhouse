@@ -18,6 +18,12 @@ struct User
         : username(user), password_hash(pass_hash), role(r) {}
 };
 
+
+/**
+ * @brief Сериализация объекта User в JSON
+ * @param j Выходной JSON
+ * @param u Объект User
+ */
 inline void to_json(nlohmann::json& j, const User& u) {
     j = {
         {"user_id",       u.user_id},
@@ -28,6 +34,11 @@ inline void to_json(nlohmann::json& j, const User& u) {
     };
 }
 
+/**
+ * @brief Десериализация объекта User из JSON
+ * @param j Входной JSON
+ * @param u Объект User
+ */
 inline void from_json(const nlohmann::json& j, User& u) {
     j.at("user_id")    .get_to(u.user_id);
     j.at("username")   .get_to(u.username);
@@ -35,9 +46,8 @@ inline void from_json(const nlohmann::json& j, User& u) {
     j.at("created_at") .get_to(u.created_at);
     j.at("updated_at") .get_to(u.updated_at);  
     
-    // Пароль обрабатывается отдельно
     if (j.contains("password")) {
-        // Здесь должен быть хешинг пароля
+        // for config.yaml?
         u.password_hash = j["password"].get<std::string>();
     }
     else if (j.contains("password_hash")) {
