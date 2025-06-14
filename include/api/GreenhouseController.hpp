@@ -31,7 +31,7 @@ public:
     GreenhouseController(Database &db, const std::string &jwt_secret)
         : BaseController(db, jwt_secret), greenhouse_manager_(db)
     {
-        LOG_DEBUG_SG("GreenhouseController initialized");
+        LOG_INFO_SG("GreenhouseController initialized");
     }
 
     /**

@@ -30,7 +30,7 @@ public:
           greenhouse_manager_(db),
           component_manager_(db)
     {
-        LOG_DEBUG_SG("MetricController initialized");
+        LOG_INFO_SG("MetricController initialized");
     }
     /**
      * @brief Регистрирует маршруты API

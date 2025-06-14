@@ -31,7 +31,7 @@ public:
     RuleController(Database &db, const std::string &jwt_secret)
         : BaseController(db, jwt_secret), rule_manager_(db)
     {
-        LOG_DEBUG_SG("RuleController initialized");
+        LOG_INFO_SG("RuleController initialized");
     }
 
     /**

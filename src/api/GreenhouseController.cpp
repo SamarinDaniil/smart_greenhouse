@@ -2,8 +2,7 @@
 
 void GreenhouseController::setup_routes(Pistache::Rest::Router &router)
 {
-    LOG_DEBUG_SG("Setting up greenhouse routes");
-    BaseController::setup_routes(router);
+    LOG_INFO_SG("Setting up greenhouse routes");
 
     using namespace Pistache::Rest;
     Routes::Get(router, "/greenhouses", Routes::bind(&GreenhouseController::get_all, this));
@@ -16,7 +15,7 @@ void GreenhouseController::setup_routes(Pistache::Rest::Router &router)
 void GreenhouseController::get_all(const Pistache::Rest::Request &request,
                                    Pistache::Http::ResponseWriter response)
 {
-    LOG_TRACE_SG("Entering get_all method");
+    LOG_INFO_SG("Entering get_all method");
     AuthResult auth = authenticate_request(request);
     if (!auth.is_valid()) // Используем метод is_valid() из AuthResult
     {
@@ -27,9 +26,9 @@ void GreenhouseController::get_all(const Pistache::Rest::Request &request,
 
     try
     {
-        LOG_DEBUG_SG("Fetching all greenhouses for user: %d", auth.user_id);
+        LOG_INFO_SG("Fetching all greenhouses for user: %d", auth.user_id);
         auto greenhouses = greenhouse_manager_.get_all();
-        LOG_DEBUG_SG("Retrieved %d greenhouses", greenhouses.size());
+        LOG_INFO_SG("Retrieved %d greenhouses", greenhouses.size());
         send_json_response(response, nlohmann::json(greenhouses)); // Используем метод базового класса
     }
     catch (const std::exception &e)
@@ -42,7 +41,7 @@ void GreenhouseController::get_all(const Pistache::Rest::Request &request,
 void GreenhouseController::get_by_id(const Pistache::Rest::Request &request,
                                      Pistache::Http::ResponseWriter response)
 {
-    LOG_TRACE_SG("Entering get_by_id method");
+    LOG_INFO_SG("Entering get_by_id method");
     AuthResult auth = authenticate_request(request);
     if (!auth.is_valid()) // Используем метод is_valid()
     {
@@ -54,7 +53,7 @@ void GreenhouseController::get_by_id(const Pistache::Rest::Request &request,
     try
     {
         int gh_id = std::stoi(request.param(":id").as<std::string>());
-        LOG_DEBUG_SG("Fetching greenhouse details for ID: %d", gh_id);
+        LOG_INFO_SG("Fetching greenhouse details for ID: %d", gh_id);
 
         auto greenhouse_opt = greenhouse_manager_.get_by_id(gh_id);
 
@@ -66,7 +65,7 @@ void GreenhouseController::get_by_id(const Pistache::Rest::Request &request,
         }
 
         send_json_response(response, nlohmann::json(*greenhouse_opt)); // Используем метод базового класса
-        LOG_DEBUG_SG("Successfully retrieved greenhouse: %d", gh_id);
+        LOG_INFO_SG("Successfully retrieved greenhouse: %d", gh_id);
     }
     catch (const std::exception &e)
     {
@@ -78,14 +77,14 @@ void GreenhouseController::get_by_id(const Pistache::Rest::Request &request,
 void GreenhouseController::create(const Pistache::Rest::Request &request,
                                   Pistache::Http::ResponseWriter response)
 {
-    LOG_TRACE_SG("Entering create method");
+    LOG_INFO_SG("Entering create method");
     AuthResult auth = authenticate_request(request);
     if (!require_admin_role(auth, response)) // Используем обновлённый метод базового класса
         return;
 
     try
     {
-        LOG_DEBUG_SG("Creating new greenhouse for admin user: %d", auth.user_id);
+        LOG_INFO_SG("Creating new greenhouse for admin user: %d", auth.user_id);
         nlohmann::json json_body;
         if (!parse_json_body(request, json_body))
         {
@@ -99,7 +98,7 @@ void GreenhouseController::create(const Pistache::Rest::Request &request,
         if (json_body.contains("location"))
         {
             greenhouse.location = json_body["location"];
-            LOG_DEBUG_SG("Location specified: %s", greenhouse.location.c_str());
+            LOG_INFO_SG("Location specified: %s", greenhouse.location.c_str());
         }
 
         if (greenhouse_manager_.create(greenhouse))
@@ -124,7 +123,7 @@ void GreenhouseController::create(const Pistache::Rest::Request &request,
 void GreenhouseController::update(const Pistache::Rest::Request &request,
                                   Pistache::Http::ResponseWriter response)
 {
-    LOG_TRACE_SG("Entering update method");
+    LOG_INFO_SG("Entering update method");
     AuthResult auth = authenticate_request(request);
     if (!require_admin_role(auth, response)) // Используем обновлённый метод базового класса
         return;
@@ -132,7 +131,7 @@ void GreenhouseController::update(const Pistache::Rest::Request &request,
     try
     {
         int gh_id = std::stoi(request.param(":id").as<std::string>());
-        LOG_DEBUG_SG("Updating greenhouse ID: %d by user: %d", gh_id, auth.user_id);
+        LOG_INFO_SG("Updating greenhouse ID: %d by user: %d", gh_id, auth.user_id);
 
         auto existing_opt = greenhouse_manager_.get_by_id(gh_id);
 
@@ -156,7 +155,7 @@ void GreenhouseController::update(const Pistache::Rest::Request &request,
         if (json_body.contains("location"))
         {
             existing.location = json_body["location"];
-            LOG_DEBUG_SG("Updating location to: %s", existing.location.c_str());
+            LOG_INFO_SG("Updating location to: %s", existing.location.c_str());
         }
 
         if (greenhouse_manager_.update(existing))
@@ -181,7 +180,7 @@ void GreenhouseController::update(const Pistache::Rest::Request &request,
 void GreenhouseController::remove(const Pistache::Rest::Request &request,
                                   Pistache::Http::ResponseWriter response)
 {
-    LOG_TRACE_SG("Entering remove method");
+    LOG_INFO_SG("Entering remove method");
     AuthResult auth = authenticate_request(request);
     if (!require_admin_role(auth, response)) // Используем обновлённый метод базового класса
         return;
@@ -189,7 +188,7 @@ void GreenhouseController::remove(const Pistache::Rest::Request &request,
     try
     {
         int gh_id = std::stoi(request.param(":id").as<std::string>());
-        LOG_DEBUG_SG("Deleting greenhouse ID: %d by user: %d", gh_id, auth.user_id);
+        LOG_INFO_SG("Deleting greenhouse ID: %d by user: %d", gh_id, auth.user_id);
 
         if (greenhouse_manager_.remove(gh_id))
         {

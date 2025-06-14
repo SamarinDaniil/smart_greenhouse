@@ -27,7 +27,7 @@ public:
           component_manager_(db),
           greenhouse_manager_(db)
     {
-        LOG_DEBUG_SG("ComponentController initialized");
+        LOG_INFO_SG("ComponentController initialized");
     }
 
     /**

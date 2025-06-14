@@ -2,7 +2,6 @@
 
 void ComponentController::setup_routes(Pistache::Rest::Router &router) 
 {
-    BaseController::setup_routes(router);
 
     using namespace Pistache::Rest;
     Routes::Get(router, "/components", Routes::bind(&ComponentController::get_components, this));
@@ -11,7 +10,7 @@ void ComponentController::setup_routes(Pistache::Rest::Router &router)
     Routes::Put(router, "/components/:id", Routes::bind(&ComponentController::update, this));
     Routes::Delete(router, "/components/:id", Routes::bind(&ComponentController::remove, this));
 
-    LOG_DEBUG_SG("ComponentController routes registered");
+    LOG_INFO_SG("ComponentController routes registered");
 }
 
 void ComponentController::get_components(const Pistache::Rest::Request &request,
@@ -35,38 +34,38 @@ void ComponentController::get_components(const Pistache::Rest::Request &request,
             int gh_id = std::stoi(*query.get("gh_id"));
             std::string role = *query.get("role");
             components = component_manager_.get_by_greenhouse_and_role(gh_id, role);
-            LOG_DEBUG_SG("Fetching components by greenhouse ID {} and role {}", gh_id, role);
+            LOG_INFO_SG("Fetching components by greenhouse ID {} and role {}", gh_id, role);
         }
         else if (query.has("gh_id") && query.has("subtype"))
         {
             int gh_id = std::stoi(*query.get("gh_id"));
             std::string subtype = *query.get("subtype");
             components = component_manager_.get_by_greenhouse_and_subtype(gh_id, subtype);
-            LOG_DEBUG_SG("Fetching components by greenhouse ID {} and subtype {}", gh_id, subtype);
+            LOG_INFO_SG("Fetching components by greenhouse ID {} and subtype {}", gh_id, subtype);
         }
         else if (query.has("gh_id"))
         {
             int gh_id = std::stoi(*query.get("gh_id"));
             components = component_manager_.get_by_greenhouse(gh_id);
-            LOG_DEBUG_SG("Fetching all components for greenhouse ID {}", gh_id);
+            LOG_INFO_SG("Fetching all components for greenhouse ID {}", gh_id);
         }
         else if (query.has("role"))
         {
             std::string role = *query.get("role");
             components = component_manager_.get_by_role(role);
-            LOG_DEBUG_SG("Fetching components by role {}", role);
+            LOG_INFO_SG("Fetching components by role {}", role);
         }
         else if (query.has("subtype"))
         {
             std::string subtype = *query.get("subtype");
             components = component_manager_.get_by_subtype(subtype);
-            LOG_DEBUG_SG("Fetching components by subtype {}", subtype);
+            LOG_INFO_SG("Fetching components by subtype {}", subtype);
         }
         else
         {
             // Если нет параметров - возвращаем все компоненты
             components = component_manager_.get_all(); // Получаем все
-            LOG_TRACE_SG("Fetching all components in the system");
+            LOG_INFO_SG("Fetching all components in the system");
         }
 
         response.send(Pistache::Http::Code::Ok, nlohmann::json(components).dump());
@@ -92,7 +91,7 @@ void ComponentController::get_by_id(const Pistache::Rest::Request &request,
     try
     {
         int comp_id = std::stoi(request.param(":id").as<std::string>());
-        LOG_DEBUG_SG("Looking up component with ID {}", comp_id);
+        LOG_INFO_SG("Looking up component with ID {}", comp_id);
 
         auto component_opt = component_manager_.get_by_id(comp_id);
 
@@ -123,7 +122,7 @@ void ComponentController::create(const Pistache::Rest::Request &request,
     try
     {
         nlohmann::json json_body = nlohmann::json::parse(request.body());
-        LOG_TRACE_SG("Received component creation request: {}", request.body());
+        LOG_INFO_SG("Received component creation request: {}", request.body());
 
         Component component;
         component.gh_id = json_body["gh_id"];
@@ -175,7 +174,7 @@ void ComponentController::update(const Pistache::Rest::Request &request,
     try
     {
         int comp_id = std::stoi(request.param(":id").as<std::string>());
-        LOG_DEBUG_SG("Updating component with ID {}", comp_id);
+        LOG_INFO_SG("Updating component with ID {}", comp_id);
 
         auto component_opt = component_manager_.get_by_id(comp_id);
 
@@ -188,7 +187,7 @@ void ComponentController::update(const Pistache::Rest::Request &request,
 
         Component component = *component_opt;
         nlohmann::json json_body = nlohmann::json::parse(request.body());
-        LOG_TRACE_SG("Update data received: {}", request.body());
+        LOG_INFO_SG("Update data received: {}", request.body());
 
         // Обновляем только разрешенные поля
         if (json_body.contains("name"))
@@ -239,7 +238,7 @@ void ComponentController::remove(const Pistache::Rest::Request &request,
     try
     {
         int comp_id = std::stoi(request.param(":id").as<std::string>());
-        LOG_DEBUG_SG("Deleting component with ID {}", comp_id);
+        LOG_INFO_SG("Deleting component with ID {}", comp_id);
 
         auto component_opt = component_manager_.get_by_id(comp_id);
 

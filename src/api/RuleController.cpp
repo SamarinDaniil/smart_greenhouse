@@ -21,7 +21,7 @@ void RuleController::setup_routes(Pistache::Rest::Router &router)
 void RuleController::create_rule(const Pistache::Rest::Request &request,
                                  Pistache::Http::ResponseWriter response)
 {
-    LOG_DEBUG_SG("create_rule: start processing request");
+    LOG_INFO_SG("create_rule: start processing request");
     auto auth = authenticate_request(request);
     if (!require_admin_role(auth, response))
         return;
@@ -62,7 +62,7 @@ void RuleController::create_rule(const Pistache::Rest::Request &request,
 void RuleController::get_rule(const Pistache::Rest::Request &request,
                               Pistache::Http::ResponseWriter response)
 {
-    LOG_DEBUG_SG("get_rule: fetching rule");
+    LOG_INFO_SG("get_rule: fetching rule");
     auto auth = authenticate_request(request);
     if (!auth.is_valid())
     {
@@ -101,7 +101,7 @@ void RuleController::get_rule(const Pistache::Rest::Request &request,
 void RuleController::update_rule(const Pistache::Rest::Request &request,
                                  Pistache::Http::ResponseWriter response)
 {
-    LOG_DEBUG_SG("update_rule: start");
+    LOG_INFO_SG("update_rule: start");
     auto auth = authenticate_request(request);
     if (!require_admin_role(auth, response))
         return;
@@ -160,7 +160,7 @@ void RuleController::update_rule(const Pistache::Rest::Request &request,
 void RuleController::delete_rule(const Pistache::Rest::Request &request,
                                  Pistache::Http::ResponseWriter response)
 {
-    LOG_DEBUG_SG("delete_rule: start");
+    LOG_INFO_SG("delete_rule: start");
     auto auth = authenticate_request(request);
     if (!require_admin_role(auth, response))
         return;
@@ -193,7 +193,7 @@ void RuleController::delete_rule(const Pistache::Rest::Request &request,
 void RuleController::get_rules_by_greenhouse(const Pistache::Rest::Request &request,
                                              Pistache::Http::ResponseWriter response)
 {
-    LOG_DEBUG_SG("get_rules_by_greenhouse: fetching list");
+    LOG_INFO_SG("get_rules_by_greenhouse: fetching list");
     auto auth = authenticate_request(request);
     if (!auth.is_valid())
     {
@@ -226,7 +226,7 @@ void RuleController::get_rules_by_greenhouse(const Pistache::Rest::Request &requ
 void RuleController::toggle_rule(const Pistache::Rest::Request &request,
                                  Pistache::Http::ResponseWriter response)
 {
-    LOG_DEBUG_SG("toggle_rule: start");
+    LOG_INFO_SG("toggle_rule: start");
     auto auth = authenticate_request(request);
     if (!require_admin_role(auth, response))
         return;

@@ -2,7 +2,7 @@
 
 void MetricController::setup_routes(Pistache::Rest::Router &router)
 {
-    LOG_TRACE_SG("Setting up MetricController routes");
+    LOG_INFO_SG("Setting up MetricController routes");
     using namespace Pistache::Rest;
     Routes::Get(router, "/metrics", Routes::bind(&MetricController::get_metrics, this));
     Routes::Get(router, "/metrics/aggregate", Routes::bind(&MetricController::get_aggregate, this));
@@ -12,7 +12,7 @@ void MetricController::setup_routes(Pistache::Rest::Router &router)
 void MetricController::get_metrics(const Pistache::Rest::Request &request,
                                    Pistache::Http::ResponseWriter response)
 {
-    LOG_DEBUG_SG("Handling GET /metrics request");
+    LOG_INFO_SG("Handling GET /metrics request");
     auto auth = authenticate_request(request);
     if (!auth.is_valid())
     {
@@ -50,25 +50,25 @@ void MetricController::get_metrics(const Pistache::Rest::Request &request,
             limit = std::stoi(limit_str.value());
         }
 
-        LOG_DEBUG_SG("Query parameters: from={}, to={}, limit={}", from, to, limit);
+        LOG_INFO_SG("Query parameters: from={}, to={}, limit={}", from, to, limit);
 
         if (query.has("gh_id") && query.has("subtype"))
         {
             int gh_id = std::stoi(query.get("gh_id").value());
             std::string subtype = query.get("subtype").value();
-            LOG_DEBUG_SG("Fetching metrics by greenhouse ID {} and subtype {}", gh_id, subtype);
+            LOG_INFO_SG("Fetching metrics by greenhouse ID {} and subtype {}", gh_id, subtype);
             metrics = metric_manager_.get_by_greenhouse_and_subtype(gh_id, subtype, from, to, limit);
         }
         else if (query.has("gh_id"))
         {
             int gh_id = std::stoi(query.get("gh_id").value());
-            LOG_DEBUG_SG("Fetching metrics by greenhouse ID {}", gh_id);
+            LOG_INFO_SG("Fetching metrics by greenhouse ID {}", gh_id);
             metrics = metric_manager_.get_by_greenhouse(gh_id, from, to, limit);
         }
         else if (query.has("subtype"))
         {
             std::string subtype = query.get("subtype").value();
-            LOG_DEBUG_SG("Fetching metrics by subtype {}", subtype);
+            LOG_INFO_SG("Fetching metrics by subtype {}", subtype);
             metrics = metric_manager_.get_by_subtype(subtype, from, to, limit);
         }
         else
@@ -93,7 +93,7 @@ void MetricController::get_metrics(const Pistache::Rest::Request &request,
 void MetricController::get_aggregate(const Pistache::Rest::Request &request,
                                      Pistache::Http::ResponseWriter response)
 {
-    LOG_DEBUG_SG("Handling GET /metrics/aggregate request");
+    LOG_INFO_SG("Handling GET /metrics/aggregate request");
     auto auth = authenticate_request(request);
     if (!auth.is_valid())
     {
@@ -137,23 +137,23 @@ void MetricController::get_aggregate(const Pistache::Rest::Request &request,
             return;
         }
 
-        LOG_DEBUG_SG("Aggregate parameters: gh_id={}, subtype={}, function={}, from={}, to={}",
+        LOG_INFO_SG("Aggregate parameters: gh_id={}, subtype={}, function={}, from={}, to={}",
                      gh_id, subtype, function, from, to);
 
         std::optional<double> result;
         if (function == "avg")
         {
-            LOG_DEBUG_SG("Calculating average for gh_id {}, subtype {}", gh_id, subtype);
+            LOG_INFO_SG("Calculating average for gh_id {}, subtype {}", gh_id, subtype);
             result = metric_manager_.get_average_value_by_greenhouse_and_subtype(gh_id, subtype, from, to);
         }
         else if (function == "min")
         {
-            LOG_DEBUG_SG("Calculating min for gh_id {}, subtype {}", gh_id, subtype);
+            LOG_INFO_SG("Calculating min for gh_id {}, subtype {}", gh_id, subtype);
             result = metric_manager_.get_min_value_by_greenhouse_and_subtype(gh_id, subtype, from, to);
         }
         else if (function == "max")
         {
-            LOG_DEBUG_SG("Calculating max for gh_id {}, subtype {}", gh_id, subtype);
+            LOG_INFO_SG("Calculating max for gh_id {}, subtype {}", gh_id, subtype);
             result = metric_manager_.get_max_value_by_greenhouse_and_subtype(gh_id, subtype, from, to);
         }
         else
@@ -189,7 +189,7 @@ void MetricController::get_aggregate(const Pistache::Rest::Request &request,
 void MetricController::get_latest_metric(const Pistache::Rest::Request &request,
                                          Pistache::Http::ResponseWriter response)
 {
-    LOG_DEBUG_SG("Handling GET /metrics/latest request");
+    LOG_INFO_SG("Handling GET /metrics/latest request");
     auto auth = authenticate_request(request);
     if (!auth.is_valid())
     {
@@ -231,7 +231,7 @@ void MetricController::get_latest_metric(const Pistache::Rest::Request &request,
             return;
         }
 
-        LOG_DEBUG_SG("Latest metric parameters: gh_id={}, subtype={}, from={}, to={}",
+        LOG_INFO_SG("Latest metric parameters: gh_id={}, subtype={}, from={}, to={}",
                      gh_id, subtype, from, to);
 
         auto metric = metric_manager_.get_latest_by_greenhouse_and_subtype(

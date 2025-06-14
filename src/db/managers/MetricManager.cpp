@@ -266,7 +266,7 @@ std::optional<double> MetricManager::get_aggregate_value(const std::string &agg_
 
     if (sqlite3_step(stmt.get()) != SQLITE_ROW)
     {
-        LOG_DEBUG_SG("No result for %s", agg_function.c_str());
+        LOG_INFO_SG("No result for %s", agg_function.c_str());
         return std::nullopt;
     }
 

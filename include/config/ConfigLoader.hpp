@@ -153,7 +153,7 @@ private:
         auto sub = node[key];
         if (!sub)
         {
-            LOG_DEBUG_SG("Default for {}: {}", key, def);
+            LOG_INFO_SG("Default for {}: {}", key, def);
             return def;
         }
         return sub.as<T>();

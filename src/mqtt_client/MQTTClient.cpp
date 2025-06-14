@@ -73,7 +73,7 @@ void MQTTClient::publish_command(const std::string& gh_id,
     
     try {
         client_->publish(msg)->wait_for(3s);
-        LOG_DEBUG_SG("MQTTClient: published {} => {}", topic, cmd);
+        LOG_INFO_SG("MQTTClient: published {} => {}", topic, cmd);
     }
     catch (const mqtt::exception& e) {
         LOG_ERROR_SG("MQTTClient publish error: {}", e.what());
@@ -123,7 +123,7 @@ void MQTTClient::message_arrived(mqtt::const_message_ptr msg) {
     auto topic = msg->get_topic();
     auto payload = msg->to_string();
     
-    LOG_DEBUG_SG("MQTTClient: received message on {}: {}", topic, payload);
+    LOG_INFO_SG("MQTTClient: received message on {}: {}", topic, payload);
     
     try {
         std::smatch m;
@@ -155,7 +155,7 @@ void MQTTClient::on_failure(const mqtt::token& tok) {
 }
 
 void MQTTClient::on_success(const mqtt::token& tok) {
-    LOG_DEBUG_SG("MQTTClient connect succeeded (id={})",
+    LOG_INFO_SG("MQTTClient connect succeeded (id={})",
               tok.get_message_id());
 }
 
