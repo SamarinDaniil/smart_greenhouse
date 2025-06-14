@@ -28,9 +28,25 @@ void MetricController::get_metrics(const Pistache::Rest::Request &request,
 
         const std::string from = query.get("from").value_or("");
         const std::string to = query.get("to").value_or("");
-        
+
+        std::regex sqlite_datetime_regex(R"(^\d{4}-\d{2}-\d{2} \d{2}:\d{2}:\d{2}$)");
+
+        if (!from.empty() && !std::regex_match(from, sqlite_datetime_regex))
+        {
+            send_error_response(response, "Invalid 'from' datetime format. Expected: YYYY-MM-DD HH:MM:SS",
+                                Pistache::Http::Code::Bad_Request);
+            return;
+        }
+        if (!to.empty() && !std::regex_match(to, sqlite_datetime_regex))
+        {
+            send_error_response(response, "Invalid 'to' datetime format. Expected: YYYY-MM-DD HH:MM:SS",
+                                Pistache::Http::Code::Bad_Request);
+            return;
+        }
+
         int limit = 1000;
-        if (auto limit_str = query.get("limit"); limit_str.has_value()) {
+        if (auto limit_str = query.get("limit"); limit_str.has_value())
+        {
             limit = std::stoi(limit_str.value());
         }
 
@@ -106,7 +122,22 @@ void MetricController::get_aggregate(const Pistache::Rest::Request &request,
         const std::string from = query.get("from").value();
         const std::string to = query.get("to").value();
 
-        LOG_DEBUG_SG("Aggregate parameters: gh_id={}, subtype={}, function={}, from={}, to={}", 
+        std::regex sqlite_datetime_regex(R"(^\d{4}-\d{2}-\d{2} \d{2}:\d{2}:\d{2}$)");
+
+        if (!from.empty() && !std::regex_match(from, sqlite_datetime_regex))
+        {
+            send_error_response(response, "Invalid 'from' datetime format. Expected: YYYY-MM-DD HH:MM:SS",
+                                Pistache::Http::Code::Bad_Request);
+            return;
+        }
+        if (!to.empty() && !std::regex_match(to, sqlite_datetime_regex))
+        {
+            send_error_response(response, "Invalid 'to' datetime format. Expected: YYYY-MM-DD HH:MM:SS",
+                                Pistache::Http::Code::Bad_Request);
+            return;
+        }
+
+        LOG_DEBUG_SG("Aggregate parameters: gh_id={}, subtype={}, function={}, from={}, to={}",
                      gh_id, subtype, function, from, to);
 
         std::optional<double> result;
@@ -185,7 +216,22 @@ void MetricController::get_latest_metric(const Pistache::Rest::Request &request,
         const std::string from = query.get("from").value_or("");
         const std::string to = query.get("to").value_or("");
 
-        LOG_DEBUG_SG("Latest metric parameters: gh_id={}, subtype={}, from={}, to={}", 
+        std::regex sqlite_datetime_regex(R"(^\d{4}-\d{2}-\d{2} \d{2}:\d{2}:\d{2}$)");
+
+        if (!from.empty() && !std::regex_match(from, sqlite_datetime_regex))
+        {
+            send_error_response(response, "Invalid 'from' datetime format. Expected: YYYY-MM-DD HH:MM:SS",
+                                Pistache::Http::Code::Bad_Request);
+            return;
+        }
+        if (!to.empty() && !std::regex_match(to, sqlite_datetime_regex))
+        {
+            send_error_response(response, "Invalid 'to' datetime format. Expected: YYYY-MM-DD HH:MM:SS",
+                                Pistache::Http::Code::Bad_Request);
+            return;
+        }
+
+        LOG_DEBUG_SG("Latest metric parameters: gh_id={}, subtype={}, from={}, to={}",
                      gh_id, subtype, from, to);
 
         auto metric = metric_manager_.get_latest_by_greenhouse_and_subtype(

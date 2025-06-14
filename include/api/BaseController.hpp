@@ -8,7 +8,7 @@
 #include "utils/Logger.hpp"
 #include "entities/User.hpp"
 #include <nlohmann/json.hpp>
-#include "utils/TimeParserISO8601.hpp"
+
 
 /**
  * @struct AuthResult
@@ -57,7 +57,7 @@ public:
      * @brief Регистрирует маршруты API
      * @param router Роутер Pistache
      */
-    virtual void setup_routes(Pistache::Rest::Router &router);
+    virtual void setup_routes(Pistache::Rest::Router &router) = 0;
 
 protected:
     UserManager user_manager_;

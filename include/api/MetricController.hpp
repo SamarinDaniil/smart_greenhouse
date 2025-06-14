@@ -42,6 +42,8 @@ public:
      * - GET /metrics/latest - последняя метрика
      */
     void setup_routes(Pistache::Rest::Router &router) override;
+    ///
+    ~MetricController() = default;
 
 private:
     MetricManager metric_manager_;         ///< Менеджер работы с метриками
@@ -54,14 +56,14 @@ private:
      * @param request HTTP-запрос
      * @param response HTTP-ответ
      *
-     * @query gh_id ID теплицы (опционально)
-     * @query subtype Подтип метрики (опционально)
-     * @query from Начало периода (опционально, ISO8601)
-     * @query to Конец периода (опционально, ISO8601)
-     * @query limit Количество записей (по умолчанию 1000)
+     * @query gh_id ID теплицы (обязателен, если не указан subtype)
+     * @query subtype Подтип метрики (обязателен, если не указан gh_id)
+     * @query from Начало периода (опционально, формат: YYYY-MM-DD HH:MM:SS)
+     * @query to Конец периода (опционально, формат: YYYY-MM-DD HH:MM:SS)
+     * @query limit Максимальное количество записей (опционально, по умолчанию 1000)
      *
      * @response 200 OK - JSON-массив метрик
-     * @response 400 Bad Request - Некорректные параметры запроса
+     * @response 400 Bad Request - Некорректные или отсутствующие параметры запроса
      * @response 401 Unauthorized - Ошибка авторизации
      */
     void get_metrics(const Pistache::Rest::Request &request,
@@ -75,12 +77,12 @@ private:
      *
      * @query gh_id ID теплицы (обязательно)
      * @query subtype Подтип метрики (обязательно)
-     * @query function Агрегация: avg, min или max (обязательно)
-     * @query from Начало периода (обязательно)
-     * @query to Конец периода (обязательно)
+     * @query function Тип агрегации: avg, min или max (обязательно)
+     * @query from Начало периода (обязательно, формат: YYYY-MM-DD HH:MM:SS)
+     * @query to Конец периода (обязательно, формат: YYYY-MM-DD HH:MM:SS)
      *
-     * @response 200 OK - JSON {"value": <числовое значение>}
-     * @response 400 Bad Request - Ошибка параметров
+     * @response 200 OK - JSON: {"value": <числовое значение>}
+     * @response 400 Bad Request - Некорректные параметры запроса
      * @response 401 Unauthorized - Ошибка авторизации
      * @response 404 Not Found - Нет данных по заданным параметрам
      */
@@ -90,16 +92,20 @@ private:
     /**
      * @brief Получает последнюю метрику по фильтрам
      *
+     * @param request HTTP-запрос
+     * @param response HTTP-ответ
+     *
      * @query gh_id ID теплицы (обязательно)
      * @query subtype Подтип метрики (обязательно)
-     * @query from Начало периода (опционально, ISO8601)
-     * @query to Конец периода (опционально, ISO8601)
+     * @query from Начало периода (опционально, формат: YYYY-MM-DD HH:MM:SS)
+     * @query to Конец периода (опционально, формат: YYYY-MM-DD HH:MM:SS)
      *
-     * @response 200 OK - JSON с метрикой
-     * @response 400 Bad Request - Некорректные параметры
+     * @response 200 OK - JSON с последней найденной метрикой
+     * @response 400 Bad Request - Некорректные параметры запроса
      * @response 401 Unauthorized - Ошибка авторизации
      * @response 404 Not Found - Метрика не найдена
      */
     void get_latest_metric(const Pistache::Rest::Request &request,
                            Pistache::Http::ResponseWriter response);
+
 };

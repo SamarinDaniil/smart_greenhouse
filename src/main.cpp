@@ -4,6 +4,7 @@
 #include <config/ConfigLoader.hpp>
 #include <db/Database.hpp>
 #include <mqtt_client/MQTTClient.hpp>
+
 #include <stdexcept>
 #include <iomanip>
 #include <csignal>
@@ -54,6 +55,9 @@ int main(int argc, char *argv[]) {
     std::thread ioc_thread([&ioc]() {
         ioc.run();
     });
+
+
+
 
     LOG_INFO_SG("Server is running. Press Ctrl+C to stop...");
 

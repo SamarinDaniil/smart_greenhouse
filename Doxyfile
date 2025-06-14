@@ -1,0 +1,18 @@
+# Основные настройки
+PROJECT_NAME           = "Greenhouse Server"
+OUTPUT_DIRECTORY       = docs              # Папка для генерации документации
+CREATE_SUBDIRS         = NO
+OUTPUT_LANGUAGE        = Russian           # Или English
+INPUT                  = include src       # Пути к исходным файлам
+RECURSIVE              = YES               # Рекурсивный поиск файлов
+FILE_PATTERNS          = *.cpp *.hpp       # Форматы файлов
+
+# Настройки генерации диаграмм
+GENERATE_HTML          = YES
+HTML_OUTPUT            = html
+GENERATE_HTML_GRAPH    = YES
+GENERATE_UML_DIAGRAMS  = YES               # Генерация UML-диаграмм
+DOT_PATH               = /usr/bin/dot      # Путь к Graphviz 
+CLASS_DIAGRAMS         = YES               # Диаграммы классов
+UML_LOOK               = YES               # UML-стиль
+CALL_GRAPH             = YES               # Граф вызовов

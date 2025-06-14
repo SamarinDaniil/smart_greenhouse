@@ -5,22 +5,41 @@
 #include <string>
 #include <optional>
 
+/**
+ * @struct Rule
+ * @brief Структура, представляющая правило в системе
+ * 
+ * Содержит все данные о правиле, включая его состояние и параметры
+ */
 struct Rule
 {
-    int rule_id = -1;
-    int gh_id;
-    std::string name;
-    int from_comp_id;
-    int to_comp_id;
-    std::string kind;          // 'time' или 'threshold'
-    std::optional<std::string> operator_; // Оператор сравнения
-    std::optional<double> threshold;     // Пороговое значение
-    std::optional<std::string> time_spec; // Временная спецификация
-    bool enabled = true;
-    std::string created_at;
-    std::string updated_at;    
+    int rule_id = -1;              ///< Уникальный идентификатор правила
+    int gh_id;                     ///< Идентификатор теплицы
+    std::string name;              ///< Название правила
+    int from_comp_id;              ///< Идентификатор исходного компонента
+    int to_comp_id;                ///< Идентификатор целевого компонента
+    std::string kind;              ///< Тип правила ('time' или 'threshold')
+    std::optional<std::string> operator_; ///< Оператор сравнения (может отсутствовать)
+    std::optional<double> threshold;     ///< Пороговое значение (может отсутствовать)
+    std::optional<std::string> time_spec;///< Временная спецификация (может отсутствовать)
+    bool enabled = true;           ///< Флаг активности правила
+    std::string created_at;        ///< Дата создания (ISO 8601)
+    std::string updated_at;        ///< Дата последнего обновления (ISO 8601)
 
+    /**
+     * @brief Конструктор по умолчанию
+     */
     Rule() = default;
+
+    /**
+     * @brief Конструктор с основными параметрами
+     * 
+     * @param greenhouse_id Идентификатор теплицы
+     * @param n Название правила
+     * @param from_id Идентификатор исходного компонента
+     * @param to_id Идентификатор целевого компонента
+     * @param k Тип правила ('time' или 'threshold')
+     */
     Rule(int greenhouse_id, const std::string &n, 
          int from_id, int to_id, const std::string &k)
         : gh_id(greenhouse_id), name(n), 

@@ -30,46 +30,57 @@ find_package(Boost REQUIRED COMPONENTS
 
 set(SOURCES
     src/main.cpp
+
     src/db/Database.cpp
+
     src/db/managers/ComponentManager.cpp
     src/db/managers/GreenhouseManager.cpp
     src/db/managers/MetricManager.cpp
     src/db/managers/RuleManager.cpp
     src/db/managers/UserManager.cpp
+
     src/mqtt_client/MQTTClient.cpp
 
     src/utils/PasswordHasher.cpp
 
     src/api/BaseController.cpp
-    src//api/GreenhouseController.cpp
-    src//api/MetricController.cpp
+    src/api/GreenhouseController.cpp
+    src/api/ComponentController.cpp
+    src/api/RuleController.cpp
+    src/api/MetricController.cpp
+    src/api/UserController.cpp
+    src/api/RestServer.cpp
 )
 
 set(HEADERS
     include/utils/Logger.hpp
     include/utils/PasswordHasher.hpp
-    include/utils/TimeParserISO8601.hpp
 
     include/config/ConfigLoader.hpp
+
     include/db/Database.hpp
+
     include/entities/Greenhouse.hpp
     include/entities/Component.hpp
     include/entities/Metric.hpp
     include/entities/Rule.hpp
     include/entities/User.hpp
+
     include/db/managers/ComponentManager.hpp
     include/db/managers/GreenhouseManager.hpp
     include/db/managers/MetricManager.hpp
     include/db/managers/RuleManager.hpp
     include/db/managers/UserManager.hpp
+
     include/mqtt_client/MQTTClient.hpp
 
     include/api/BaseController.hpp
     include/api/GreenhouseController.hpp
-    include/api/component_controller.hpp
-    include/api/rule_controller.hpp
+    include/api/ComponentController.hpp
+    include/api/RuleController.hpp
     include/api/MetricController.hpp
-    include/api/user_controller.hpp
+    include/api/UserController.hpp
+    include/api/RestServer.hpp
 )
 
 add_executable(smart_greenhouse ${SOURCES} ${HEADERS})
