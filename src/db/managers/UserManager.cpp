@@ -4,11 +4,13 @@
 #include <vector>
 #include <optional>
 
+using namespace db;
+
 bool UserManager::create(User &user, const std::string &password)
 {
     try
     {
-        user.password_hash = PasswordHasher::generate_hash(password);
+        user.password_hash = utils::PasswordHasher::generate_hash(password);
     }
     catch (const std::exception &e)
     {
@@ -64,7 +66,7 @@ bool UserManager::authenticate(const std::string &username, const std::string &p
     }
 
     const char *hash = reinterpret_cast<const char *>(sqlite3_column_text(stmt, 1));
-    const bool valid = PasswordHasher::validate_password(password, hash);
+    const bool valid = utils::PasswordHasher::validate_password(password, hash);
 
     db_.finalize_statement(stmt);
     return valid;

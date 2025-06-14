@@ -1,6 +1,8 @@
 #include "db/managers/ComponentManager.hpp"
 #include <algorithm>
-#include <memory>  // Для std::unique_ptr
+#include <memory>  
+
+using namespace db;
 
 bool ComponentManager::create(Component &component)
 {

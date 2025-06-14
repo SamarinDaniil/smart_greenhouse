@@ -1,6 +1,8 @@
 #include "db/managers/RuleManager.hpp"
 #include <algorithm>
 
+using namespace db;
+
 bool RuleManager::create(Rule &rule)
 {
     const std::string sql = R"(

@@ -4,6 +4,8 @@
 #include <algorithm>
 #include <stdexcept>
 
+using namespace db;
+
 bool MetricManager::create(Metric &metric)
 {
     const std::string sql = R"(

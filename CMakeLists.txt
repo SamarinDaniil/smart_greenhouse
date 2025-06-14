@@ -6,14 +6,15 @@ set(CMAKE_CXX_STANDARD_REQUIRED ON)
 set(CMAKE_CXX_EXTENSIONS OFF)       
 set(CMAKE_EXPORT_COMPILE_COMMANDS ON)
 
+
 set(CMAKE_CXX_COMPILER g++-13)
 
 #Поиск зависимостей
 find_package(cpp-jwt REQUIRED)
 find_package(libxcrypt REQUIRED)
-find_package(PahoMqttCpp REQUIRED)
+find_package(Drogon REQUIRED)
 find_package(nlohmann_json REQUIRED)
-find_package(Pistache REQUIRED)            
+find_package(PahoMqttCpp REQUIRED)        
 find_package(SQLite3 REQUIRED)  
 find_package(yaml-cpp REQUIRED)
 find_package(Boost REQUIRED COMPONENTS
@@ -43,13 +44,12 @@ set(SOURCES
 
     src/utils/PasswordHasher.cpp
 
-    src/api/BaseController.cpp
-    src/api/GreenhouseController.cpp
-    src/api/ComponentController.cpp
-    src/api/RuleController.cpp
-    src/api/MetricController.cpp
-    src/api/UserController.cpp
-    src/api/RestServer.cpp
+    src/plugins/JwtPlugin.cpp
+    src/plugins/DbPlugin.cpp
+    
+    src/filters/JwtAuth.cpp
+
+    src/controllers/AuthCtrl.cpp
 )
 
 set(HEADERS
@@ -74,13 +74,12 @@ set(HEADERS
 
     include/mqtt_client/MQTTClient.hpp
 
-    include/api/BaseController.hpp
-    include/api/GreenhouseController.hpp
-    include/api/ComponentController.hpp
-    include/api/RuleController.hpp
-    include/api/MetricController.hpp
-    include/api/UserController.hpp
-    include/api/RestServer.hpp
+    include/plugins/JwtPlugin.hpp
+    include/plugins/DbPlugin.hpp
+
+    include/filters/JwtAuth.hpp
+
+    include/controllers/AuthCtrl.hpp
 )
 
 add_executable(smart_greenhouse ${SOURCES} ${HEADERS})
@@ -95,7 +94,7 @@ target_link_libraries(smart_greenhouse
         libxcrypt::libxcrypt
         nlohmann_json::nlohmann_json
         yaml-cpp::yaml-cpp
-        Pistache::Pistache
+        Drogon::Drogon
         SQLite::SQLite3
         PahoMqttCpp::paho-mqttpp3-static
     PUBLIC

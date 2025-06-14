@@ -8,6 +8,7 @@
 #include <algorithm>
 
 namespace fs = std::filesystem;
+using namespace db;
 
 // Database version for schema migration
 static constexpr const char *DATABASE_VERSION = "1.0.0";

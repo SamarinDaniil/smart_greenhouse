@@ -1,5 +1,7 @@
 #include "db/managers/GreenhouseManager.hpp"
 
+using namespace db;
+
 bool GreenhouseManager::create(Greenhouse &greenhouse)
 {
     const std::string sql = R"(
