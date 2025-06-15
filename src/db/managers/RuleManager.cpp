@@ -12,7 +12,7 @@ bool RuleManager::create(Rule &rule)
         ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?)
     )";
 
-    auto stmt = db_.prepare_statement(sql);
+    auto stmt = db_->prepare_statement(sql);
     if (!stmt)
         return false;
 
@@ -52,14 +52,14 @@ bool RuleManager::create(Rule &rule)
 
     sqlite3_bind_int(stmt, 9, rule.enabled ? 1 : 0);
 
-    if (!db_.execute_statement(stmt))
+    if (!db_->execute_statement(stmt))
     {
-        db_.finalize_statement(stmt);
+        db_->finalize_statement(stmt);
         return false;
     }
 
-    rule.rule_id = static_cast<int>(db_.get_last_insert_rowid());
-    db_.finalize_statement(stmt);
+    rule.rule_id = static_cast<int>(db_->get_last_insert_rowid());
+    db_->finalize_statement(stmt);
 
     // Получаем полные данные с временными метками
     auto full_rule = get_by_id(rule.rule_id);
@@ -88,7 +88,7 @@ bool RuleManager::update(const Rule &rule)
         WHERE rule_id = ?
     )";
 
-    auto stmt = db_.prepare_statement(sql);
+    auto stmt = db_->prepare_statement(sql);
     if (!stmt)
         return false;
 
@@ -129,21 +129,21 @@ bool RuleManager::update(const Rule &rule)
     sqlite3_bind_int(stmt, 9, rule.enabled ? 1 : 0);
     sqlite3_bind_int(stmt, 10, rule.rule_id);
 
-    const bool success = db_.execute_statement(stmt);
-    db_.finalize_statement(stmt);
+    const bool success = db_->execute_statement(stmt);
+    db_->finalize_statement(stmt);
     return success;
 }
 
 bool RuleManager::remove(int rule_id)
 {
     const std::string sql = "DELETE FROM rules WHERE rule_id = ?";
-    auto stmt = db_.prepare_statement(sql);
+    auto stmt = db_->prepare_statement(sql);
     if (!stmt)
         return false;
 
     sqlite3_bind_int(stmt, 1, rule_id);
-    const bool success = db_.execute_statement(stmt);
-    db_.finalize_statement(stmt);
+    const bool success = db_->execute_statement(stmt);
+    db_->finalize_statement(stmt);
     return success;
 }
 
@@ -158,7 +158,7 @@ std::optional<Rule> RuleManager::get_by_id(int rule_id)
         WHERE rule_id = ?
     )";
 
-    auto stmt = db_.prepare_statement(sql);
+    auto stmt = db_->prepare_statement(sql);
     if (!stmt)
         return std::nullopt;
 
@@ -166,12 +166,12 @@ std::optional<Rule> RuleManager::get_by_id(int rule_id)
 
     if (sqlite3_step(stmt) != SQLITE_ROW)
     {
-        db_.finalize_statement(stmt);
+        db_->finalize_statement(stmt);
         return std::nullopt;
     }
 
     Rule rule = parse_rule_from_db(stmt);
-    db_.finalize_statement(stmt);
+    db_->finalize_statement(stmt);
     return rule;
 }
 
@@ -187,7 +187,7 @@ std::vector<Rule> RuleManager::get_by_greenhouse(int gh_id)
         WHERE gh_id = ?
     )";
 
-    auto stmt = db_.prepare_statement(sql);
+    auto stmt = db_->prepare_statement(sql);
     if (!stmt)
         return rules;
 
@@ -198,7 +198,7 @@ std::vector<Rule> RuleManager::get_by_greenhouse(int gh_id)
         rules.push_back(parse_rule_from_db(stmt));
     }
 
-    db_.finalize_statement(stmt);
+    db_->finalize_statement(stmt);
     return rules;
 }
 
@@ -214,7 +214,7 @@ std::vector<Rule> RuleManager::get_active_rules()
         WHERE enabled = 1
     )";
 
-    auto stmt = db_.prepare_statement(sql);
+    auto stmt = db_->prepare_statement(sql);
     if (!stmt)
         return rules;
 
@@ -223,7 +223,7 @@ std::vector<Rule> RuleManager::get_active_rules()
         rules.push_back(parse_rule_from_db(stmt));
     }
 
-    db_.finalize_statement(stmt);
+    db_->finalize_statement(stmt);
     return rules;
 }
 
@@ -232,7 +232,7 @@ std::vector<Rule> RuleManager::get_rules_for_component(int comp_id, bool as_sour
     std::vector<Rule> rules;
     const std::string sql = as_source ? "SELECT * FROM rules WHERE from_comp_id = ?" : "SELECT * FROM rules WHERE to_comp_id = ?";
 
-    auto stmt = db_.prepare_statement(sql);
+    auto stmt = db_->prepare_statement(sql);
     if (!stmt)
         return rules;
 
@@ -243,29 +243,29 @@ std::vector<Rule> RuleManager::get_rules_for_component(int comp_id, bool as_sour
         rules.push_back(parse_rule_from_db(stmt));
     }
 
-    db_.finalize_statement(stmt);
+    db_->finalize_statement(stmt);
     return rules;
 }
 
 bool RuleManager::toggle_rule(int rule_id, bool enabled)
 {
     const std::string sql = "UPDATE rules SET enabled = ? WHERE rule_id = ?";
-    auto stmt = db_.prepare_statement(sql);
+    auto stmt = db_->prepare_statement(sql);
     if (!stmt)
         return false;
 
     sqlite3_bind_int(stmt, 1, enabled ? 1 : 0);
     sqlite3_bind_int(stmt, 2, rule_id);
 
-    const bool success = db_.execute_statement(stmt);
-    db_.finalize_statement(stmt);
+    const bool success = db_->execute_statement(stmt);
+    db_->finalize_statement(stmt);
     return success;
 }
 
 bool RuleManager::is_rule_active(int rule_id)
 {
     const std::string sql = "SELECT enabled FROM rules WHERE rule_id = ?";
-    auto stmt = db_.prepare_statement(sql);
+    auto stmt = db_->prepare_statement(sql);
     if (!stmt)
         return false;
 
@@ -273,12 +273,12 @@ bool RuleManager::is_rule_active(int rule_id)
 
     if (sqlite3_step(stmt) != SQLITE_ROW)
     {
-        db_.finalize_statement(stmt);
+        db_->finalize_statement(stmt);
         return false;
     }
 
     const bool enabled = sqlite3_column_int(stmt, 0) == 1;
-    db_.finalize_statement(stmt);
+    db_->finalize_statement(stmt);
     return enabled;
 }
 

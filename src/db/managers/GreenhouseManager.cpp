@@ -9,7 +9,7 @@ bool GreenhouseManager::create(Greenhouse &greenhouse)
         VALUES (?, ?)
     )";
 
-    SQLiteStmt stmt(db_.prepare_statement(sql));
+    SQLiteStmt stmt(db_->prepare_statement(sql));
     if (!stmt)
     {
         LOG_ERROR_SG("Failed to prepare statement for Greenhouse::create");
@@ -19,13 +19,13 @@ bool GreenhouseManager::create(Greenhouse &greenhouse)
     sqlite3_bind_text(stmt.get(), 1, greenhouse.name.c_str(), -1, SQLITE_TRANSIENT);
     sqlite3_bind_text(stmt.get(), 2, greenhouse.location.c_str(), -1, SQLITE_TRANSIENT);
 
-    if (!db_.execute_statement(stmt.get()))
+    if (!db_->execute_statement(stmt.get()))
     {
         LOG_ERROR_SG("Failed to execute statement for Greenhouse::create");
         return false;
     }
 
-    greenhouse.gh_id = static_cast<int>(db_.get_last_insert_rowid());
+    greenhouse.gh_id = static_cast<int>(db_->get_last_insert_rowid());
 
     // Получаем полные данные с временными метками
     auto updated_greenhouse = get_by_id(greenhouse.gh_id);
@@ -47,7 +47,7 @@ bool GreenhouseManager::update(const Greenhouse &greenhouse)
         WHERE gh_id = ?
     )";
 
-    SQLiteStmt stmt(db_.prepare_statement(sql));
+    SQLiteStmt stmt(db_->prepare_statement(sql));
     if (!stmt)
     {
         LOG_ERROR_SG("Failed to prepare statement for Greenhouse::update");
@@ -58,13 +58,13 @@ bool GreenhouseManager::update(const Greenhouse &greenhouse)
     sqlite3_bind_text(stmt.get(), 2, greenhouse.location.c_str(), -1, SQLITE_TRANSIENT);
     sqlite3_bind_int(stmt.get(), 3, greenhouse.gh_id);
 
-    return db_.execute_statement(stmt.get());
+    return db_->execute_statement(stmt.get());
 }
 
 bool GreenhouseManager::remove(int gh_id)
 {
     const std::string sql = "DELETE FROM greenhouses WHERE gh_id = ?";
-    SQLiteStmt stmt(db_.prepare_statement(sql));
+    SQLiteStmt stmt(db_->prepare_statement(sql));
     if (!stmt)
     {
         LOG_ERROR_SG("Failed to prepare statement for Greenhouse::remove");
@@ -72,7 +72,7 @@ bool GreenhouseManager::remove(int gh_id)
     }
 
     sqlite3_bind_int(stmt.get(), 1, gh_id);
-    return db_.execute_statement(stmt.get());
+    return db_->execute_statement(stmt.get());
 }
 
 std::optional<Greenhouse> GreenhouseManager::get_by_id(int gh_id)
@@ -82,7 +82,7 @@ std::optional<Greenhouse> GreenhouseManager::get_by_id(int gh_id)
         FROM greenhouses WHERE gh_id = ?
     )";
 
-    SQLiteStmt stmt(db_.prepare_statement(sql));
+    SQLiteStmt stmt(db_->prepare_statement(sql));
     if (!stmt)
     {
         LOG_ERROR_SG("Failed to prepare statement for Greenhouse::get_by_id");
@@ -110,7 +110,7 @@ std::vector<Greenhouse> GreenhouseManager::get_all()
     std::vector<Greenhouse> greenhouses;
     const std::string sql = "SELECT gh_id, name, location, created_at, updated_at FROM greenhouses";
 
-    SQLiteStmt stmt(db_.prepare_statement(sql));
+    SQLiteStmt stmt(db_->prepare_statement(sql));
     if (!stmt)
     {
         LOG_ERROR_SG("Failed to prepare statement for Greenhouse::get_all");

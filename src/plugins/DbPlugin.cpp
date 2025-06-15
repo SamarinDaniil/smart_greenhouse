@@ -1,26 +1,30 @@
 #include "plugins/DbPlugin.hpp"
-#include <drogon/HttpAppFramework.h>
-#include <stdexcept>
-#include "utils/Logger.hpp"
+#include <drogon/drogon.h>
+#include <iostream>
+#include <json/json.h>
 
-using namespace drogon;
-
-void DbPlugin::initAndStart(const Json::Value& config)
+namespace api
 {
-    // Ожидаем, что в конфиге есть database.path
-    if (!config.isMember("database") ||
-        !config["database"].isMember("path"))
-    {
-        throw std::runtime_error("database.path missing in config.yaml");
-    }
-    const std::string path =
-        config["database"]["path"].asString();
 
-    // Создаём и инициализируем
-    db_ = std::make_shared<db::Database>(path);
-    if (!db_->initialize())
+    void DbPlugin::initAndStart(const Json::Value &config)
     {
-        throw std::runtime_error("Failed to init Database at " + path);
+        db_ = db::Database::getInstance();
+
+        if (!db_->is_connected())
+        {
+            LOG_ERROR << "Database is not connected!";
+            std::terminate();
+        }
+
+        LOG_INFO << "Database plugin started successfully.";
     }
-    LOG_INFO_SG("Connected to DB at {}", path);
+
+    void DbPlugin::shutdown()
+    {
+        if (db_)
+        {
+            LOG_INFO << "Database closed ptr.";
+        }
+    }
+
 }

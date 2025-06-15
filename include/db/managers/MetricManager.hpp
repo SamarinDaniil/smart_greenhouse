@@ -7,6 +7,7 @@
 #include <optional>
 #include <string>
 #include <chrono>
+#include <memory>
 
 namespace db
 {
@@ -24,7 +25,7 @@ namespace db
          * @brief Конструктор менеджера метрик.
          * @param db Ссылка на объект Database для выполнения операций с базой.
          */
-        explicit MetricManager(Database &db) : db_(db) {}
+        MetricManager() : db_(Database::getInstance()) {}
 
         /** @name Основные операции с метриками */
         ///@{
@@ -91,8 +92,8 @@ namespace db
          *
          * @param gh_id Идентификатор теплицы.
          * @param subtype Подтип метрики.
-         * @param from_time (необязательно) Строка времени начала диапазона (формат ISO 8601).
-         * @param to_time (необязательно) Строка времени конца диапазона (формат ISO 8601).
+         * @param from_time (необязательно) Строка времени начала диапазона (формат).
+         * @param to_time (необязательно) Строка времени конца диапазона (формат).
          * @return std::optional<Metric> Последняя (по времени) метрика, соответствующая условиям,
          *         либо std::nullopt, если ничего не найдено.
          */
@@ -153,7 +154,7 @@ namespace db
         bool remove_old_metrics(const std::string &older_than);
 
     private:
-        Database &db_;
+        std::shared_ptr<Database> db_;
 
         /**
          * @brief Выполнить SQL-запрос и получить вектор метрик без параметров.

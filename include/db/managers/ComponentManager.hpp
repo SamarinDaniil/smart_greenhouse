@@ -1,6 +1,8 @@
 #pragma once
 #include "entities/Component.hpp"
 #include "db/Database.hpp"
+
+#include <memory>
 #include <vector>
 #include <optional>
 
@@ -19,7 +21,7 @@ namespace db
          * @brief Конструктор
          * @param db Ссылка на объект базы данных
          */
-        explicit ComponentManager(Database &db) : db_(db) {}
+        ComponentManager() : db_(Database::getInstance()) {}
 
         // Основные CRUD операции
 
@@ -125,7 +127,7 @@ namespace db
         int count_by_subtype(const std::string &subtype);
 
     private:
-        Database &db_; ///< Ссылка на объект базы данных
+        std::shared_ptr<Database> db_; ///< Ссылка на объект базы данных
 
         /**
          * @brief Парсит данные из SQL-запроса в объект Component

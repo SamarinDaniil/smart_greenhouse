@@ -2,7 +2,6 @@
 
 namespace utils
 {
-
     std::string PasswordHasher::generate_hash(const std::string &password)
     {
         // Генерация случайной соли для алгоритма SHA-512
@@ -40,5 +39,4 @@ namespace utils
 
         return std::strcmp(result, hash.c_str()) == 0;
     }
-
 } // namespace utils

@@ -13,7 +13,7 @@ bool MetricManager::create(Metric &metric)
         VALUES (?, ?, ?, ?)
     )";
 
-    SQLiteStmt stmt(db_.prepare_statement(sql));
+    SQLiteStmt stmt(db_->prepare_statement(sql));
     if (!stmt)
         return false;
 
@@ -22,13 +22,13 @@ bool MetricManager::create(Metric &metric)
     sqlite3_bind_double(stmt.get(), 3, metric.value);
     sqlite3_bind_text(stmt.get(), 4, metric.ts.c_str(), -1, SQLITE_TRANSIENT);
 
-    if (!db_.execute_statement(stmt.get()))
+    if (!db_->execute_statement(stmt.get()))
     {
         LOG_ERROR_SG("Failed to insert metric");
         return false;
     }
 
-    metric.metric_id = static_cast<int>(db_.get_last_insert_rowid());
+    metric.metric_id = static_cast<int>(db_->get_last_insert_rowid());
     return true;
 }
 
@@ -37,7 +37,7 @@ bool MetricManager::create_batch(const std::vector<Metric> &metrics)
     if (metrics.empty())
         return true;
 
-    Database::Transaction transaction(db_);
+    Database::Transaction transaction;
     if (!transaction.is_valid())
         return false;
 
@@ -46,7 +46,7 @@ bool MetricManager::create_batch(const std::vector<Metric> &metrics)
         VALUES (?, ?, ?, ?)
     )";
 
-    SQLiteStmt stmt(db_.prepare_statement(sql));
+    SQLiteStmt stmt(db_->prepare_statement(sql));
     if (!stmt)
         return false;
 
@@ -237,7 +237,7 @@ std::optional<double> MetricManager::get_aggregate_value(const std::string &agg_
         params.push_back({4, "T:" + to_time});
     }
 
-    SQLiteStmt stmt(db_.prepare_statement(sql));
+    SQLiteStmt stmt(db_->prepare_statement(sql));
     if (!stmt)
     {
         LOG_ERROR_SG("Failed to prepare statement for %s", agg_function.c_str());
@@ -304,12 +304,12 @@ std::optional<double> MetricManager::get_max_value_by_greenhouse_and_subtype(int
 bool MetricManager::remove_old_metrics(const std::string &older_than)
 {
     const std::string sql = "DELETE FROM metrics WHERE ts < ?";
-    SQLiteStmt stmt(db_.prepare_statement(sql));
+    SQLiteStmt stmt(db_->prepare_statement(sql));
     if (!stmt)
         return false;
 
     sqlite3_bind_text(stmt.get(), 1, older_than.c_str(), -1, SQLITE_TRANSIENT);
-    return db_.execute_statement(stmt.get());
+    return db_->execute_statement(stmt.get());
 }
 
 // Вспомогательные методы
@@ -317,7 +317,7 @@ bool MetricManager::remove_old_metrics(const std::string &older_than)
 std::vector<Metric> MetricManager::get_metrics(const std::string &sql)
 {
     std::vector<Metric> metrics;
-    SQLiteStmt stmt(db_.prepare_statement(sql));
+    SQLiteStmt stmt(db_->prepare_statement(sql));
     if (!stmt)
         return metrics;
 
@@ -334,7 +334,7 @@ std::vector<Metric> MetricManager::get_metrics_with_params(
     const std::vector<std::pair<int, std::string>> &params)
 {
     std::vector<Metric> metrics;
-    SQLiteStmt stmt(db_.prepare_statement(base_sql));
+    SQLiteStmt stmt(db_->prepare_statement(base_sql));
     if (!stmt)
         return metrics;
 

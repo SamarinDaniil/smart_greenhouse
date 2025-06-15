@@ -6,7 +6,7 @@ drogon/1.9.10
 nlohmann_json/3.11.3
 paho-mqtt-cpp/1.5.3
 libxcrypt/4.4.36
-cpp-jwt/1.4
+cpp-jwt/1.5
 
 [options]
 *:cppstd=20

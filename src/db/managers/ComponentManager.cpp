@@ -11,7 +11,7 @@ bool ComponentManager::create(Component &component)
         VALUES (?, ?, ?, ?)
     )";
 
-    SQLiteStmt stmt(db_.prepare_statement(sql));
+    SQLiteStmt stmt(db_->prepare_statement(sql));
     if (!stmt)
         return false;
 
@@ -20,10 +20,10 @@ bool ComponentManager::create(Component &component)
     sqlite3_bind_text(stmt.get(), 3, component.role.c_str(), -1, SQLITE_TRANSIENT);
     sqlite3_bind_text(stmt.get(), 4, component.subtype.c_str(), -1, SQLITE_TRANSIENT);
 
-    if (!db_.execute_statement(stmt.get()))
+    if (!db_->execute_statement(stmt.get()))
         return false;
 
-    component.comp_id = static_cast<int>(db_.get_last_insert_rowid());
+    component.comp_id = static_cast<int>(db_->get_last_insert_rowid());
 
     auto full_component = get_by_id(component.comp_id);
     if (full_component)
@@ -45,7 +45,7 @@ bool ComponentManager::update(const Component &component)
         WHERE comp_id = ?
     )";
 
-    SQLiteStmt stmt(db_.prepare_statement(sql));
+    SQLiteStmt stmt(db_->prepare_statement(sql));
     if (!stmt)
         return false;
 
@@ -54,18 +54,18 @@ bool ComponentManager::update(const Component &component)
     sqlite3_bind_text(stmt.get(), 3, component.subtype.c_str(), -1, SQLITE_TRANSIENT);
     sqlite3_bind_int(stmt.get(), 4, component.comp_id);
 
-    return db_.execute_statement(stmt.get());
+    return db_->execute_statement(stmt.get());
 }
 
 bool ComponentManager::remove(int comp_id)
 {
     const std::string sql = "DELETE FROM components WHERE comp_id = ?";
-    SQLiteStmt stmt(db_.prepare_statement(sql));
+    SQLiteStmt stmt(db_->prepare_statement(sql));
     if (!stmt)
         return false;
 
     sqlite3_bind_int(stmt.get(), 1, comp_id);
-    return db_.execute_statement(stmt.get());
+    return db_->execute_statement(stmt.get());
 }
 
 std::vector<Component> ComponentManager::get_all() {
@@ -73,7 +73,7 @@ std::vector<Component> ComponentManager::get_all() {
         SELECT comp_id, gh_id, name, role, subtype, created_at, updated_at
         FROM components
     )";
-    SQLiteStmt stmt(db_.prepare_statement(sql));
+    SQLiteStmt stmt(db_->prepare_statement(sql));
     std::vector<Component> components;
     while (sqlite3_step(stmt.get()) == SQLITE_ROW)
         components.push_back(parse_component_from_db(stmt.get()));
@@ -88,7 +88,7 @@ std::optional<Component> ComponentManager::get_by_id(int comp_id)
         WHERE comp_id = ?
     )";
 
-    SQLiteStmt stmt(db_.prepare_statement(sql));
+    SQLiteStmt stmt(db_->prepare_statement(sql));
     if (!stmt)
         return std::nullopt;
 
@@ -109,7 +109,7 @@ std::vector<Component> ComponentManager::get_by_greenhouse(int gh_id)
         WHERE gh_id = ?
     )";
 
-    SQLiteStmt stmt(db_.prepare_statement(sql));
+    SQLiteStmt stmt(db_->prepare_statement(sql));
     if (!stmt)
         return components;
 
@@ -130,7 +130,7 @@ std::vector<Component> ComponentManager::get_by_role(const std::string &role)
         WHERE role = ?
     )";
 
-    SQLiteStmt stmt(db_.prepare_statement(sql));
+    SQLiteStmt stmt(db_->prepare_statement(sql));
     if (!stmt)
         return components;
 
@@ -151,7 +151,7 @@ std::vector<Component> ComponentManager::get_by_subtype(const std::string &subty
         WHERE subtype = ?
     )";
 
-    SQLiteStmt stmt(db_.prepare_statement(sql));
+    SQLiteStmt stmt(db_->prepare_statement(sql));
     if (!stmt)
         return components;
 
@@ -172,7 +172,7 @@ std::vector<Component> ComponentManager::get_by_greenhouse_and_role(int gh_id, c
         WHERE gh_id = ? AND role = ?
     )";
 
-    SQLiteStmt stmt(db_.prepare_statement(sql));
+    SQLiteStmt stmt(db_->prepare_statement(sql));
     if (!stmt)
         return components;
 
@@ -194,7 +194,7 @@ std::vector<Component> ComponentManager::get_by_greenhouse_and_subtype(int gh_id
         WHERE gh_id = ? AND subtype = ?
     )";
 
-    SQLiteStmt stmt(db_.prepare_statement(sql));
+    SQLiteStmt stmt(db_->prepare_statement(sql));
     if (!stmt)
         return components;
 
@@ -210,7 +210,7 @@ std::vector<Component> ComponentManager::get_by_greenhouse_and_subtype(int gh_id
 int ComponentManager::count_by_greenhouse(int gh_id)
 {
     const std::string sql = "SELECT COUNT(*) FROM components WHERE gh_id = ?";
-    SQLiteStmt stmt(db_.prepare_statement(sql));
+    SQLiteStmt stmt(db_->prepare_statement(sql));
     if (!stmt)
         return 0;
 
@@ -226,7 +226,7 @@ int ComponentManager::count_by_greenhouse(int gh_id)
 int ComponentManager::count_by_role(const std::string &role)
 {
     const std::string sql = "SELECT COUNT(*) FROM components WHERE role = ?";
-    SQLiteStmt stmt(db_.prepare_statement(sql));
+    SQLiteStmt stmt(db_->prepare_statement(sql));
     if (!stmt)
         return 0;
 
@@ -242,7 +242,7 @@ int ComponentManager::count_by_role(const std::string &role)
 int ComponentManager::count_by_subtype(const std::string &subtype)
 {
     const std::string sql = "SELECT COUNT(*) FROM components WHERE subtype = ?";
-    SQLiteStmt stmt(db_.prepare_statement(sql));
+    SQLiteStmt stmt(db_->prepare_statement(sql));
     if (!stmt)
         return 0;
 

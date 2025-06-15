@@ -4,6 +4,7 @@
 #include "db/Database.hpp"
 #include <vector>
 #include <optional>
+#include <memory>
 
 namespace db
 {
@@ -21,7 +22,7 @@ namespace db
          * @brief Конструктор с параметром
          * @param db Ссылка на объект базы данных
          */
-        explicit RuleManager(Database &db) : db_(db) {}
+        RuleManager() : db_(Database::getInstance()) {}
 
         // Основные CRUD операции
 
@@ -104,7 +105,7 @@ namespace db
         bool is_rule_active(int rule_id);
 
     private:
-        Database &db_;
+        std::shared_ptr<Database> db_;
 
         /**
          * @brief Парсит результат SQL-запроса в объект Rule

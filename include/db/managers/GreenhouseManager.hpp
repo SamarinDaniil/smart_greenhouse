@@ -3,6 +3,7 @@
 #include "db/Database.hpp"
 #include "utils/Logger.hpp"
 
+#include <memory>
 #include <optional>
 #include <vector>
 
@@ -25,7 +26,7 @@ namespace db
          * @param db Ссылка на объект базы данных, который будет использоваться для операций.
          * @pre База данных должна быть корректно инициализирована и открыта.
          */
-        explicit GreenhouseManager(Database &db) : db_(db) {}
+        GreenhouseManager() : db_(Database::getInstance()) {}
 
         /**
          * @brief Создает новую запись о теплице в базе данных.
@@ -76,6 +77,6 @@ namespace db
         std::vector<Greenhouse> get_all();
 
     private:
-        Database &db_; ///< Ссылка на объект базы данных
+        std::shared_ptr<Database> db_; ///< Ссылка на объект базы данных
     };
 }

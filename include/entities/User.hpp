@@ -12,7 +12,6 @@ struct User
     std::string password_hash;    ///< Хеш пароля (алгоритм зависит от PasswordHasher)
     std::string role;             ///< Роль: 'observer' (наблюдатель) или 'admin' (админ)
     std::string created_at;       ///< Дата создания (формат YYYY-MM-DD HH:MM:SS)
-    std::string updated_at;       ///< Дата последнего обновления (формат YYYY-MM-DD HH:MM:SS)
 
     User() = default;
     
@@ -36,7 +35,6 @@ inline void to_json(nlohmann::json& j, const User& u) {
         {"username",      u.username},
         {"role",          u.role},
         {"created_at",    u.created_at},
-        {"updated_at",    u.updated_at} 
     };
 }
 
@@ -51,7 +49,6 @@ inline void from_json(const nlohmann::json& j, User& u) {
     j.at("username")   .get_to(u.username);
     j.at("role")       .get_to(u.role);
     j.at("created_at") .get_to(u.created_at);
-    j.at("updated_at") .get_to(u.updated_at);  
     
     if (j.contains("password")) {
         // Поле используется при загрузке из конфигурации

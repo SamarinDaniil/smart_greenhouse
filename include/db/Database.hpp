@@ -12,6 +12,7 @@
 #include <functional>
 #include <mutex>
 #include <cstdint>
+#include <memory>
 
 #include "utils/Logger.hpp"
 // entities
@@ -50,6 +51,15 @@ namespace db
     {
     public:
         /**
+         * @brief Получает единственный экземпляр базы данных (Singleton)
+         * @return std::shared_ptr<Database> — ссылка на единственный объект
+         */
+        static std::shared_ptr<Database> getInstance()
+        {
+            static std::shared_ptr<Database> instance = std::make_shared<Database>();
+            return instance;
+        }
+        /**
          * @brief Структура для хранения статистической информации о базе данных
          */
         struct DatabaseInfo
@@ -76,9 +86,8 @@ namespace db
         public:
             /**
              * @brief Конструктор, начинает транзакцию
-             * @param db Ссылка на объект базы данных
              */
-            explicit Transaction(Database &db);
+            Transaction();
 
             /**
              * @brief Деструктор, автоматически откатывает незавершённую транзакцию
@@ -109,24 +118,21 @@ namespace db
             bool is_committed() const noexcept { return committed_; }
 
         private:
-            Database &db_;   ///< Ссылка на родительскую БД
+            std::shared_ptr<Database> db_;   ///< Владеющий указатель на БД через Singleton
             bool success_;   ///< Флаг успешного начала транзакции
             bool committed_; ///< Флаг фиксации транзакции
         };
 
         /**
          * @brief Конструктор базы данных
-         * @param db_path Путь к файлу базы данных (по умолчанию: greenhouse.db)
+         * @param db_path Путь к файлу базы данных (по умолчанию: data/greenhouse.db)
          */
-        explicit Database(const std::string &db_path = "greenhouse.db");
+        Database(const std::string &db_path = "data/greenhouse.db");
 
         /**
          * @brief Деструктор, автоматически закрывает соединение с БД
          */
         ~Database();
-
-        Database(const Database &) = delete;
-        Database &operator=(const Database &) = delete;
 
         /**
          * @brief Перемещающий конструктор

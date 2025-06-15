@@ -1,21 +1,29 @@
-
+// api_DbPlugin.h
 #pragma once
+
+#include "db/Database.hpp"
 #include <drogon/plugins/Plugin.h>
 #include <memory>
-#include "db/Database.hpp"
+#include <string>
 
-namespace db { class Database; }
-
-class DbPlugin final : public drogon::Plugin<DbPlugin>
+namespace api
 {
-  public:
-    /// Инициализируем базу по пути из config.yaml
-    void initAndStart(const Json::Value& config) override;
-    void shutdown() override {}
 
-    /// Получить ссылку на объект БД
-    db::Database& db() const { return *db_; }
+  class DbPlugin : public drogon::Plugin<DbPlugin>
+  {
+  public:
+    DbPlugin() = default;
+
+    /// Initializes and starts the plugin. Reads database path from config,
+    /// creates and initializes the Database instance.
+    void initAndStart(const Json::Value &config) override;
+
+    /// Shuts down the plugin and closes the database connection.
+    void shutdown() override;
+
+    std::shared_ptr<db::Database> getDb() const { return db_; }
 
   private:
     std::shared_ptr<db::Database> db_;
-};
+  };
+} // namespace api

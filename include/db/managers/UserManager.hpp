@@ -4,6 +4,7 @@
 #include "entities/User.hpp"
 #include "db/Database.hpp"
 
+#include <memory>
 #include <optional>
 #include <vector>
 
@@ -16,7 +17,7 @@ namespace db
     public:
         /// @brief Конструктор
         /// @param db Ссылка на объект базы данных
-        explicit UserManager(Database &db) : db_(db) {}
+        UserManager() : db_(Database::getInstance()) {}
 
         /// @brief Создает нового пользователя
         /// @param[in,out] user Объект пользователя (при успехе обновляется ID и датами)
@@ -51,7 +52,7 @@ namespace db
         std::vector<User> get_all();
 
     private:
-        Database &db_; ///< Ссылка на менеджер базы данных
+        std::shared_ptr<Database> db_; ///< Ссылка на менеджер базы данных
     };
 
 } // namespace name

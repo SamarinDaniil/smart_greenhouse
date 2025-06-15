@@ -1,77 +1,107 @@
 #include "plugins/JwtPlugin.hpp"
-#include <drogon/HttpAppFramework.h>
-#include <chrono>
+#include <drogon/drogon.h>
 #include <jwt/jwt.hpp>
+#include <nlohmann/json.hpp>
+#include <chrono>
+#include <sstream>
+#include <algorithm>
 
-using namespace drogon;
-using clk = std::chrono::system_clock;
+using namespace api;
+using namespace jwt::params;
 
-void JwtPlugin::initAndStart(const Json::Value&)
+void JwtPlugin::initAndStart(const Json::Value &config)
 {
-    const auto &cfg = app().getCustomConfig();
-    secret_ = cfg["server"]["jwt_secret"].asString();
-    if (secret_.empty())
-        throw std::runtime_error("server.jwt_secret missing");
+    algorithm_ = config.get("algorithm", "HS256").asString();
+    secret_ = config.get("secret", "").asString();
+    tokenLifetimeMinutes_ = config.get("token_lifetime_minutes", 30).asInt();
 
-    if (cfg["server"].isMember("jwt_issuer"))
-        issuer_ = cfg["server"]["jwt_issuer"].asString();
+    const auto &payload = config["payload"]["user_type"];
+    if (payload.isArray())
+    {
+        for (const auto &item : payload)
+            allowedUserTypes_.push_back(item.asString());
+    }
 
-    LOG_INFO << "JwtPlugin started (issuer=" << issuer_ << ")";
+    issuer_ = config["claims"].get("iss", "").asString();
+    
+    LOG_INFO << "[JwtPlugin] Configured alg=" << algorithm_
+             << ", issuer=" << issuer_
+             << ", lifetime=" << tokenLifetimeMinutes_ << "m";
 }
 
-std::string JwtPlugin::issue(std::int64_t userId,
-                             std::string_view role,
-                             std::chrono::minutes ttl) const
+void JwtPlugin::shutdown()
 {
-    auto now = clk::now();
-    auto toSec = [](clk::time_point tp) {
-        return std::to_string(
-            std::chrono::duration_cast<std::chrono::seconds>(
-                tp.time_since_epoch()
-            ).count()
-        );
-    };
+    LOG_INFO << "[JwtPlugin] Shutdown";
+}
 
-    std::map<std::string, std::string> payload{
-        {"iss",  issuer_},
-        {"sub",  std::to_string(userId)},
-        {"role", std::string{role}},
-        {"iat",  toSec(now)},
-        {"exp",  toSec(now + ttl)}
-    };
+std::string JwtPlugin::createToken(const std::string &userType) const
+{
+    // Создаем токен: header и payload
+    auto now = std::chrono::system_clock::now();
+    auto exp = now + std::chrono::minutes(tokenLifetimeMinutes_);
 
-    jwt::jwt_object obj{
-        jwt::params::algorithm("HS256"),
-        jwt::params::payload(std::move(payload)),
-        jwt::params::secret(secret_)
-    };
+    jwt::jwt_object obj{algorithm(algorithm_), secret(secret_), payload({{"user_type", userType}})};
+    obj.add_claim("iss", issuer_)
+    .add_claim("exp", std::chrono::duration_cast<std::chrono::seconds>(exp.time_since_epoch()).count());
+
     return obj.signature();
 }
 
-jwt::jwt_object JwtPlugin::decodeAndVerify(const std::string &token) const
+bool JwtPlugin::validateToken(const std::string &token, std::string &outRole) const
 {
-    // 1. Декодируем + проверяем подпись
-    auto decoded = jwt::decode(
+    std::error_code ec;
+    // Декодируем токен
+    auto decoded_token = jwt::decode(
         token,
-        jwt::params::algorithms({"HS256"}),
-        jwt::params::secret(secret_)
+        algorithms({algorithm_}),
+        ec,
+        secret(secret_),
+        issuer(issuer_),
+        leeway(60)
     );
+    if (ec)
+    {
+        LOG_ERROR << "JWT decode error: " << ec.message();
+        return false;
+    }
 
-    // 2. Проверка issuer
-    const auto iss_claim = decoded.payload()
-        .get_claim_value<std::string>("iss");
-    if (iss_claim != issuer_)
-        throw std::runtime_error("invalid issuer");
+    // Получаем payload как JSON
+    std::ostringstream oss;
+    oss << decoded_token.payload();
+    nlohmann::json payload_json = nlohmann::json::parse(oss.str());
+    
+    // Извлечение user_type
+    if (!payload_json.contains("user_type"))
+    {
+        LOG_ERROR << "user_type claim missing";
+        return false;
+    }
+    const auto &claim = payload_json["user_type"];
+    if (claim.is_string())
+    {
+        outRole = claim.get<std::string>();
+    }
+    else if (claim.is_array())
+    {
+        auto arr = claim.get<std::vector<std::string>>();
+        if (arr.empty())
+        {
+            LOG_ERROR << "Invalid user_type array format";
+            return false;
+        }
+        outRole = arr[0];
+    }
+    else
+    {
+        LOG_ERROR << "Invalid user_type claim type";
+        return false;
+    }
 
-    // 3. Проверка exp
-    const auto exp_claim = decoded.payload()
-        .get_claim_value<std::string>("exp");
-    const auto exp_time = std::stoll(exp_claim);
-    const auto now_sec = std::chrono::duration_cast<std::chrono::seconds>(
-        clk::now().time_since_epoch()
-    ).count();
-    if (now_sec > exp_time)
-        throw std::runtime_error("token expired");
-
-    return decoded;
+    // Проверка разрешённых ролей
+    if (std::find(allowedUserTypes_.begin(), allowedUserTypes_.end(), outRole) == allowedUserTypes_.end())
+    {
+        LOG_ERROR << "User role not allowed: " << outRole;
+        return false;
+    }
+    return true;
 }

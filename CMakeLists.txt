@@ -13,6 +13,7 @@ set(CMAKE_CXX_COMPILER g++-13)
 find_package(cpp-jwt REQUIRED)
 find_package(libxcrypt REQUIRED)
 find_package(Drogon REQUIRED)
+find_package(jsoncpp REQUIRED)
 find_package(nlohmann_json REQUIRED)
 find_package(PahoMqttCpp REQUIRED)        
 find_package(SQLite3 REQUIRED)  
@@ -42,14 +43,14 @@ set(SOURCES
 
     src/mqtt_client/MQTTClient.cpp
 
+    src/processor/ServerProcessor.cpp
+
     src/utils/PasswordHasher.cpp
 
-    src/plugins/JwtPlugin.cpp
     src/plugins/DbPlugin.cpp
-    
-    src/filters/JwtAuth.cpp
+    src/plugins/JwtPlugin.cpp
 
-    src/controllers/AuthCtrl.cpp
+    src/filters/JwtAuthFilter.cpp
 )
 
 set(HEADERS
@@ -74,12 +75,12 @@ set(HEADERS
 
     include/mqtt_client/MQTTClient.hpp
 
-    include/plugins/JwtPlugin.hpp
+    include/processor/ServerProcessor.hpp
+
     include/plugins/DbPlugin.hpp
+    include/plugins/JwtPlugin.hpp
 
-    include/filters/JwtAuth.hpp
-
-    include/controllers/AuthCtrl.hpp
+    include/filters/JwtAuthFilter.hpp
 )
 
 add_executable(smart_greenhouse ${SOURCES} ${HEADERS})
@@ -90,6 +91,7 @@ target_include_directories(smart_greenhouse PRIVATE
 
 target_link_libraries(smart_greenhouse
     PRIVATE
+        JsonCpp::JsonCpp
         cpp-jwt::cpp-jwt
         libxcrypt::libxcrypt
         nlohmann_json::nlohmann_json

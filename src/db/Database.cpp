@@ -32,29 +32,6 @@ Database::~Database()
     }
 }
 
-// Move constructor and assignment
-Database::Database(Database &&other) noexcept
-    : db_(other.db_), db_path_(std::move(other.db_path_))
-{
-    other.db_ = nullptr;
-}
-
-Database &Database::operator=(Database &&other) noexcept
-{
-    if (this != &other)
-    {
-        std::lock_guard<std::mutex> lock(db_mutex_);
-        if (db_)
-        {
-            sqlite3_close(db_);
-        }
-        db_ = other.db_;
-        db_path_ = std::move(other.db_path_);
-        other.db_ = nullptr;
-    }
-    return *this;
-}
-
 // Core database operations
 bool Database::open_connection()
 {
@@ -112,7 +89,7 @@ bool Database::initialize()
 
     try
     {
-        Transaction transaction(*this);
+        Transaction transaction;
         if (!transaction.is_valid())
         {
             LOG_ERROR_SG("Failed to begin initialization transaction");
@@ -265,13 +242,7 @@ bool Database::create_tables()
         AFTER UPDATE ON rules FOR EACH ROW  
         BEGIN  
             UPDATE rules SET updated_at = CURRENT_TIMESTAMP WHERE rule_id = NEW.rule_id;  
-        END;  
-
-        CREATE TRIGGER update_users_updated_at  
-        AFTER UPDATE ON users FOR EACH ROW  
-        BEGIN  
-            UPDATE users SET updated_at = CURRENT_TIMESTAMP WHERE user_id = NEW.user_id;  
-        END;  
+        END;   
     )";
 
     return execute_sql(sql);
@@ -637,9 +608,10 @@ std::string Database::get_last_error() const
 }
 
 // Transaction RAII implementation
-Database::Transaction::Transaction(Database &db) : db_(db), success_(false), committed_(false)
+Database::Transaction::Transaction() 
+    : db_(Database::getInstance()), success_(false), committed_(false)
 {
-    success_ = db_.begin_transaction();
+    success_ = db_->begin_transaction();
     if (!success_)
     {
         LOG_ERROR_SG("Failed to begin transaction");
@@ -650,7 +622,7 @@ Database::Transaction::~Transaction()
 {
     if (success_ && !committed_)
     {
-        if (!db_.rollback_transaction())
+        if (!db_->rollback_transaction())
         {
             LOG_ERROR_SG("Failed to rollback transaction in destructor");
         }
@@ -672,5 +644,5 @@ bool Database::Transaction::commit()
     }
 
     committed_ = true;
-    return db_.commit_transaction();
+    return db_->commit_transaction();
 }
