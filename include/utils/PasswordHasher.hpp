@@ -4,7 +4,7 @@
 #include <stdexcept>
 #include <crypt.h>
 
-namespace utils {
+namespace utils_sg {
 
 class PasswordHasher {
 public:

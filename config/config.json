@@ -25,18 +25,20 @@
     },
     "plugins": [
         {
-            "name": "DbPlugin",
+            "name": "api::DbPlugin",
+            "dependencies": [],
             "config": {
                 "database": {
-                    "_comment": "Уже создана!"
+                    "_comment": "Уже создана! Singletone"
                 }
             }
         },
         {
-            "name": "JWT",
+            "name": "api::JwtPlugin",
+            "dependencies": [],
             "config": {
                 "algorithm": "HS256",
-                "secret": "your_secret_key",
+                "secret": "supersecretkey_32chars_long_123456",
                 "token_lifetime_minutes": 30,
                 "payload": {
                     "user_type": [
@@ -45,7 +47,7 @@
                     ]
                 },
                 "claims": {
-                    "iss": "your_issuer_here"
+                    "iss": "greenhouse_server"
                 }
             }
         }

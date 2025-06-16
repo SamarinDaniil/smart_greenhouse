@@ -51,6 +51,8 @@ set(SOURCES
     src/plugins/JwtPlugin.cpp
 
     src/filters/JwtAuthFilter.cpp
+
+    src/controllers/AuthController.cpp
 )
 
 set(HEADERS
@@ -81,6 +83,8 @@ set(HEADERS
     include/plugins/JwtPlugin.hpp
 
     include/filters/JwtAuthFilter.hpp
+
+    include/controllers/AuthController.hpp
 )
 
 add_executable(smart_greenhouse ${SOURCES} ${HEADERS})

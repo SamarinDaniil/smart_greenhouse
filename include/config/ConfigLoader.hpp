@@ -257,7 +257,7 @@ private:
             LOG_ERROR_SG("Admin password too short");
             throw ConfigError("Weak admin password");
         }
-        a.password_hash = utils::PasswordHasher::generate_hash(pwd);
+        a.password_hash = utils_sg::PasswordHasher::generate_hash(pwd);
         // очистка пароля из памяти
         std::fill(pwd.begin(), pwd.end(), '\0');
     }

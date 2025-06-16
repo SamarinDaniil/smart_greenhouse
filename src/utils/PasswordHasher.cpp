@@ -1,6 +1,6 @@
 #include "utils/PasswordHasher.hpp"
 
-namespace utils
+namespace utils_sg
 {
     std::string PasswordHasher::generate_hash(const std::string &password)
     {
