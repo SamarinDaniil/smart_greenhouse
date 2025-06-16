@@ -17,6 +17,7 @@
 
 const std::string TEST_USERNAME = "SamarinDaniil";
 const std::string TEST_PASSWORD = "23s1dfSamarin";
+const std::string TEST_PASSWORD2 = "MasMira42";
 
 using namespace drogon;
 using namespace api;
@@ -100,7 +101,7 @@ void testPasswordHashing()
 {
     std::cout << "\n===== Testing Password Hashing =====" << std::endl;
 
-    auto pas_hash = utils_sg::PasswordHasher::generate_hash(TEST_PASSWORD);
+    auto pas_hash = utils_sg::PasswordHasher::generate_hash(TEST_PASSWORD2);
     std::cout << "Generated hash: " << pas_hash << std::endl;
 
     if (utils_sg::PasswordHasher::validate_password(TEST_PASSWORD, pas_hash))
@@ -266,8 +267,18 @@ void runRestServer()
             return;
         }
         drogon::app().loadConfigFile("config/config.json");
-        ;
         LOG_INFO << "Server starting…";
+        auto handlers = app().getHandlersInfo();
+        for (const auto &handlerTuple : handlers)
+        {
+            using HandlerType = std::remove_reference_t<decltype(handlerTuple)>;
+            constexpr size_t tupleSize = std::tuple_size<HandlerType>::value;
+
+            const std::string &pathPattern = std::get<0>(handlerTuple);
+            const std::string &description = std::get<tupleSize - 1>(handlerTuple);
+
+            std::cout << "Route: " << pathPattern << " | Description: " << description << std::endl;
+        }
 
         for (const auto &listener : app().getListeners())
         {

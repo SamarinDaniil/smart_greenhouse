@@ -10,6 +10,7 @@ set(CMAKE_EXPORT_COMPILE_COMMANDS ON)
 set(CMAKE_CXX_COMPILER g++-13)
 
 #Поиск зависимостей
+find_package(GTest REQUIRED)
 find_package(cpp-jwt REQUIRED)
 find_package(libxcrypt REQUIRED)
 find_package(Drogon REQUIRED)
@@ -54,6 +55,10 @@ set(SOURCES
 
     src/controllers/AuthController.cpp
     src/controllers/GreenhouseController.cpp
+    src/controllers/ComponentController.cpp
+    src/controllers/MetricController.cpp
+    src/controllers/RuleController.cpp
+    src/controllers/UserController.cpp
 )
 
 set(HEADERS
@@ -88,6 +93,10 @@ set(HEADERS
 
     include/controllers/AuthController.hpp
     include/controllers/GreenhouseController.hpp
+    include/controllers/ComponentController.hpp
+    include/controllers/MetricController.hpp
+    include/controllers/RuleController.hpp
+    include/controllers/UserController.hpp
 )
 
 add_executable(smart_greenhouse ${SOURCES} ${HEADERS})
@@ -109,6 +118,7 @@ target_link_libraries(smart_greenhouse
         Drogon::Drogon
         SQLite::SQLite3
         PahoMqttCpp::paho-mqttpp3-static
+        gtest::gtest
     PUBLIC
         Boost::filesystem
         Boost::system

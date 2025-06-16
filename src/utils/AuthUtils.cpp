@@ -14,7 +14,7 @@ AuthResult validateTokenAndGetRole(const drogon::HttpRequestPtr &req)
         return {false, ""}; // Неуспешная проверка
     }
 
-    std::string token = authHeader.substr(7); // Убираем "Bearer "
+    std::string token = authHeader.substr(7); 
 
     // Проверяем токен через плагин
     auto jwtp = drogon::app().getPlugin<JwtPlugin>();

@@ -3,6 +3,8 @@
 #include <trantor/utils/Logger.h>
 #include "entities/Greenhouse.hpp"
 #include "db/managers/GreenhouseManager.hpp"
+#include "entities/Component.hpp"
+#include "db/managers/ComponentManager.hpp"
 #include <sstream>
 #include <string>
 #include <string_view>
@@ -40,16 +42,16 @@ namespace api
         const HttpRequestPtr &req,
         std::function<void(const HttpResponsePtr &)> &&callback)
     {
-        LOG_DEBUG<<"get_all";
+        LOG_DEBUG << "get_all";
         try
         {
             // Проверка токена
             auto auth = api::validateTokenAndGetRole(req);
             if (!auth.success)
             {
-                auto resp = drogon::HttpResponse::newHttpResponse();
-                resp->setStatusCode(drogon::k401Unauthorized);
-                resp->setBody("Invalid or missing token");
+                auto resp = HttpResponse::newHttpResponse();
+                resp->setStatusCode(k401Unauthorized);
+                resp->setBody("Unauthorized: Invalid or expired token");
                 callback(resp);
                 return;
             }
@@ -105,17 +107,16 @@ namespace api
         std::function<void(const HttpResponsePtr &)> &&callback,
         int gh_id)
     {
-        LOG_INFO << "Greenhouse Request! gh_id : ( "<< gh_id<<" )";
+        LOG_INFO << "Greenhouse Request! gh_id : ( " << gh_id << " )";
         try
         {
             // Проверка токена
             auto auth = api::validateTokenAndGetRole(req);
             if (!auth.success)
             {
-                auto resp = drogon::HttpResponse::newHttpResponse();
-                resp->setStatusCode(drogon::k401Unauthorized);
-                resp->setBody("Invalid or missing token");
-                LOG_ERROR << "Invalid or missing token";
+                auto resp = HttpResponse::newHttpResponse();
+                resp->setStatusCode(k401Unauthorized);
+                resp->setBody("Unauthorized: Invalid or expired token");
                 callback(resp);
                 return;
             }
@@ -187,18 +188,18 @@ namespace api
             auto auth = api::validateTokenAndGetRole(req);
             if (!auth.success)
             {
-                auto resp = drogon::HttpResponse::newHttpResponse();
-                resp->setStatusCode(drogon::k401Unauthorized);
-                resp->setBody("Invalid or missing token");
+                auto resp = HttpResponse::newHttpResponse();
+                resp->setStatusCode(k401Unauthorized);
+                resp->setBody("Unauthorized: Invalid or expired token");
                 callback(resp);
                 return;
             }
 
-            // Проверка прав администратора (если нужно)
-            if (!api::isAdmin(auth))
+            // 2. Проверка прав администратора (авторизация)
+            if (!isAdmin(auth))
             {
-                auto resp = drogon::HttpResponse::newHttpResponse();
-                resp->setStatusCode(drogon::k403Forbidden);
+                auto resp = HttpResponse::newHttpResponse();
+                resp->setStatusCode(k403Forbidden);
                 resp->setBody("Forbidden: Admin access required");
                 callback(resp);
                 return;
@@ -231,9 +232,26 @@ namespace api
 
             if (manager.create(greenhouse))
             {
-                auto resp = HttpResponse::newHttpJsonResponse(greenhouse.toJson());
-                resp->setStatusCode(k201Created);
-                callback(resp);
+                db::ComponentManager cM_;
+                Component comp;
+                comp.gh_id = greenhouse.gh_id;
+                comp.name = "Server Time";
+                comp.role = "sensor";
+                comp.subtype = "Time";
+                if (cM_.create(comp))
+                {
+                    auto resp = HttpResponse::newHttpJsonResponse(greenhouse.toJson());
+                    resp->setStatusCode(k201Created);
+                    callback(resp);
+                }
+                else
+                {
+                    Json::Value error;
+                    error["error"] = "Failed to create greenhouse with component: Time";
+                    auto resp = HttpResponse::newHttpJsonResponse(error);
+                    resp->setStatusCode(k500InternalServerError);
+                    callback(resp);
+                }
             }
             else
             {
@@ -291,22 +309,22 @@ namespace api
     {
         try
         {
-                        // Проверка токена
+            // Проверка токена
             auto auth = api::validateTokenAndGetRole(req);
             if (!auth.success)
             {
-                auto resp = drogon::HttpResponse::newHttpResponse();
-                resp->setStatusCode(drogon::k401Unauthorized);
-                resp->setBody("Invalid or missing token");
+                auto resp = HttpResponse::newHttpResponse();
+                resp->setStatusCode(k401Unauthorized);
+                resp->setBody("Unauthorized: Invalid or expired token");
                 callback(resp);
                 return;
             }
 
-            // Проверка прав администратора (если нужно)
-            if (!api::isAdmin(auth))
+            // 2. Проверка прав администратора (авторизация)
+            if (!isAdmin(auth))
             {
-                auto resp = drogon::HttpResponse::newHttpResponse();
-                resp->setStatusCode(drogon::k403Forbidden);
+                auto resp = HttpResponse::newHttpResponse();
+                resp->setStatusCode(k403Forbidden);
                 resp->setBody("Forbidden: Admin access required");
                 callback(resp);
                 return;
@@ -405,22 +423,22 @@ namespace api
     {
         try
         {
-                        // Проверка токена
+            // Проверка токена
             auto auth = api::validateTokenAndGetRole(req);
             if (!auth.success)
             {
-                auto resp = drogon::HttpResponse::newHttpResponse();
-                resp->setStatusCode(drogon::k401Unauthorized);
-                resp->setBody("Invalid or missing token");
+                auto resp = HttpResponse::newHttpResponse();
+                resp->setStatusCode(k401Unauthorized);
+                resp->setBody("Unauthorized: Invalid or expired token");
                 callback(resp);
                 return;
             }
 
-            // Проверка прав администратора (если нужно)
-            if (!api::isAdmin(auth))
+            // 2. Проверка прав администратора (авторизация)
+            if (!isAdmin(auth))
             {
-                auto resp = drogon::HttpResponse::newHttpResponse();
-                resp->setStatusCode(drogon::k403Forbidden);
+                auto resp = HttpResponse::newHttpResponse();
+                resp->setStatusCode(k403Forbidden);
                 resp->setBody("Forbidden: Admin access required");
                 callback(resp);
                 return;

@@ -5,18 +5,18 @@ using namespace drogon;
 
 namespace api {
 
-class GreenhouseController : public HttpController<GreenhouseController> {
+class ComponentController : public HttpController<ComponentController> {
   public:
     METHOD_LIST_BEGIN
-    ADD_METHOD_TO(GreenhouseController::get_all, "/api/greenhouses", Get);
-    ADD_METHOD_TO(GreenhouseController::get_by_id, "/api/greenhouses/{gh_id}", Get);
-    ADD_METHOD_TO(GreenhouseController::create, "/api/greenhouses", Post);
-    ADD_METHOD_TO(GreenhouseController::update, "/api/greenhouses/{gh_id}", Put);
-    ADD_METHOD_TO(GreenhouseController::remove, "/api/greenhouse/{gh_id}", Delete);
+    ADD_METHOD_TO(ComponentController::get_components, "/api/Components", Get);
+    ADD_METHOD_TO(ComponentController::get_by_id, "/api/Components/{gh_id}", Get);
+    ADD_METHOD_TO(ComponentController::create, "/api/Components", Post);
+    ADD_METHOD_TO(ComponentController::update, "/api/Components/{gh_id}", Put);
+    ADD_METHOD_TO(ComponentController::remove, "/api/Component/{gh_id}", Delete);
     METHOD_LIST_END
 
     // Обработчики
-    void get_all(const HttpRequestPtr &req, std::function<void(const HttpResponsePtr &)> &&callback);
+    void get_components(const HttpRequestPtr &req, std::function<void(const HttpResponsePtr &)> &&callback);
     void get_by_id(const HttpRequestPtr &req, std::function<void(const HttpResponsePtr &)> &&callback, int gh_id);
     void create(const HttpRequestPtr &req, std::function<void(const HttpResponsePtr &)> &&callback);
     void update(const HttpRequestPtr &req, std::function<void(const HttpResponsePtr &)> &&callback, int gh_id);

@@ -10,7 +10,7 @@ namespace api
     {
     public:
         METHOD_LIST_BEGIN
-        METHOD_ADD(AuthController::login, "/api/login", Post);
+        ADD_METHOD_TO(AuthController::login, "/api/login", Post);
         METHOD_LIST_END
 
         void login(const HttpRequestPtr &req,
