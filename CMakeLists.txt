@@ -50,9 +50,10 @@ set(SOURCES
     src/plugins/DbPlugin.cpp
     src/plugins/JwtPlugin.cpp
 
-    src/filters/JwtAuthFilter.cpp
+    src/utils/AuthUtils.cpp
 
     src/controllers/AuthController.cpp
+    src/controllers/GreenhouseController.cpp
 )
 
 set(HEADERS
@@ -82,12 +83,17 @@ set(HEADERS
     include/plugins/DbPlugin.hpp
     include/plugins/JwtPlugin.hpp
 
-    include/filters/JwtAuthFilter.hpp
+    include/utils/AuthUtils.hpp
+
 
     include/controllers/AuthController.hpp
+    include/controllers/GreenhouseController.hpp
 )
 
 add_executable(smart_greenhouse ${SOURCES} ${HEADERS})
+
+aux_source_directory(controllers CTL_SRC)
+aux_source_directory(filters FILTER_SRC)
 
 target_include_directories(smart_greenhouse PRIVATE
     ${CMAKE_CURRENT_SOURCE_DIR}/include   

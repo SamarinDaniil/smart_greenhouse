@@ -7,9 +7,9 @@
         }
     ],
     "app": {
-        "threads_num": 2,
+        "threads_num": 4,
         "max_connections": 1000,
-        "max_connections_per_ip": 100,
+        "max_connections_per_ip": 1000,
         "client_max_body_size": "10M",
         "log": {
             "log_path": "./logs",
