@@ -17,6 +17,8 @@ MQTTClient::MQTTClient(boost::asio::io_context& ioc,
           mqtt::create_options(MQTTVERSION_3_1_1)
       )),
       reconnect_timer_(ioc_),
+      reconnect_attempts_(0), // Инициализация счетчика попыток
+      max_backoff_(60),       // Максимальная задержка 60 секунд
       cmd_rx_(std::regex_replace(cfg_.topics.at("command"),
                                   std::regex(R"(\{gh_id\})"), R"(([^/]+))")),
       met_rx_(std::regex_replace(cfg_.topics.at("metrics"),
@@ -29,6 +31,18 @@ MQTTClient::MQTTClient(boost::asio::io_context& ioc,
     if (!cfg_.username.empty()) {
         conn_opts_.set_user_name(cfg_.username);
         conn_opts_.set_password(cfg_.password);
+    }
+
+    // Добавление LWT (Last Will and Testament)
+    if (!cfg_.will_topic.empty() && !cfg_.will_message.empty()) {
+        mqtt::will_options will(
+            cfg_.will_topic,
+            cfg_.will_message,
+            cfg_.will_qos,
+            cfg_.will_retained
+        );
+        conn_opts_.set_will(will);
+        LOG_INFO_SG("LWT configured: {} => {}", cfg_.will_topic, cfg_.will_message);
     }
 
     // Регистрация коллбеков
@@ -108,9 +122,11 @@ void MQTTClient::do_connect() {
 }
 
 void MQTTClient::connected(const std::string& cause) {
+    reconnect_attempts_ = 0;
     LOG_INFO_SG("MQTTClient: connected ({})", cause);
     do_subscribe();
 }
+
 
 void MQTTClient::connection_lost(const std::string& cause) {
     LOG_ERROR_SG("MQTTClient: connection lost ({})", cause);
@@ -189,11 +205,15 @@ void MQTTClient::do_subscribe() {
 void MQTTClient::schedule_reconnect() {
     if (stopping_) return;
     
-    LOG_INFO_SG("MQTTClient: scheduling reconnect in 5 seconds...");
-    reconnect_timer_.expires_after(5s);
+    // Экспоненциальный backoff с ограничением максимума
+    int delay_seconds = std::min(5 * (1 << reconnect_attempts_), max_backoff_);
+    reconnect_attempts_++;
+    
+    LOG_INFO_SG("MQTTClient: scheduling reconnect in {} seconds...", delay_seconds);
+    reconnect_timer_.expires_after(std::chrono::seconds(delay_seconds));
     reconnect_timer_.async_wait([this](const boost::system::error_code& ec) {
         if (!ec && !stopping_) {
-            LOG_INFO_SG("MQTTClient: reconnecting...");
+            LOG_INFO_SG("MQTTClient: reconnecting (attempt #{})...", reconnect_attempts_);
             do_connect();
         }
         else if (ec && ec != boost::asio::error::operation_aborted) {
@@ -201,7 +221,6 @@ void MQTTClient::schedule_reconnect() {
         }
     });
 }
-
 std::string MQTTClient::resolve_topic(const std::string& tmpl,
                                       const std::string& gh_id) const
 {
@@ -211,14 +230,4 @@ std::string MQTTClient::resolve_topic(const std::string& tmpl,
         s.replace(p, 7, gh_id);
     }
     return s;
-}
-
-std::string MQTTClient::extract_gh_id(const std::string& topic,
-                                      const std::regex& rx) const
-{
-    std::smatch m;
-    if (std::regex_match(topic, m, rx) && m.size() > 1) {
-        return m[1].str();
-    }
-    return {};
 }

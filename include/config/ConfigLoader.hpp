@@ -30,6 +30,10 @@ struct MQTTConfig
     std::string password;
     int keep_alive = 60;
     bool clean_session = true;
+    std::string will_topic = "status/online";     // Топик для LWT-сообщения
+    std::string will_message = "disconnected";   // Текст LWT-сообщения
+    int will_qos = 1;           // QoS для LWT (по умолчанию 1)
+    bool will_retained = true; // Флаг retained для LWT
 };
 
 struct DatabaseConfig
@@ -37,12 +41,6 @@ struct DatabaseConfig
     std::string path = "data/greenhouse.db";
 };
 
-struct ServerConfig
-{
-    std::string host = "0.0.0.0";
-    int port = 8080;
-    std::string jwt_secret;
-};
 
 struct AdminUser
 {
@@ -54,7 +52,6 @@ struct Config
 {
     MQTTConfig mqtt;
     DatabaseConfig db;
-    ServerConfig server;
     AdminUser admin;
 };
 
@@ -84,7 +81,6 @@ public:
         Config cfg;
         parseMQTT(root, cfg.mqtt);
         parseDatabase(root, cfg.db);
-        parseServer(root, cfg.server);
         parseAdmin(root, cfg.admin);
 
         logLoaded(cfg);
@@ -231,19 +227,6 @@ private:
         }
     }
 
-    static void parseServer(const YAML::Node &root, ServerConfig &s)
-    {
-        auto n = root["server"];
-        if (!n || !n.IsMap())
-            throw ConfigError("Server section missing");
-
-        s.host = getOr<std::string>(n, "host", s.host);
-        s.port = validatePort(getOr<int>(n, "port", s.port));
-        s.jwt_secret = require<std::string>(n, "jwt_secret");
-        if (s.jwt_secret.size() < 32)
-            LOG_WARN_SG("JWT secret too short");
-    }
-
     static void parseAdmin(const YAML::Node &root, AdminUser &a)
     {
         auto n = root["admin"];
@@ -276,9 +259,6 @@ private:
         }
 
         LOG_INFO_SG("[DB] Path={}", c.db.path);
-
-        LOG_INFO_SG("[Server] Host={}, Port={}, JWT={}", c.server.host, c.server.port,
-                 c.server.jwt_secret.empty() ? "-" : "*");
 
         LOG_INFO_SG("[Admin] User={}, Hash={}", c.admin.username,
                  c.admin.password_hash.empty() ? "-" : "*");
