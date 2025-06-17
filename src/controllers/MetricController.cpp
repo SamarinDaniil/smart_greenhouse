@@ -206,5 +206,16 @@ namespace api
             callback(resp);
         }
     }
-
+        void MetricController::cors_options(
+        const HttpRequestPtr & /*req*/,
+        std::function<void(const HttpResponsePtr &)> &&callback)
+    {
+        auto resp = HttpResponse::newHttpResponse();
+        resp->setStatusCode(k200OK);
+        resp->addHeader("Access-Control-Allow-Origin", "*");
+        resp->addHeader("Access-Control-Allow-Methods", "GET,POST,PUT,DELETE,OPTIONS");
+        resp->addHeader("Access-Control-Allow-Headers", "Content-Type, Authorization");
+        resp->addHeader("Access-Control-Max-Age", "86400"); 
+        callback(resp);
+    }
 } // namespace api

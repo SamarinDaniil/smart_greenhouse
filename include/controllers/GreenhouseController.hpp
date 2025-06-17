@@ -13,6 +13,13 @@ class GreenhouseController : public HttpController<GreenhouseController> {
     ADD_METHOD_TO(GreenhouseController::create, "/api/greenhouses", Post);
     ADD_METHOD_TO(GreenhouseController::update, "/api/greenhouses/{gh_id}", Put);
     ADD_METHOD_TO(GreenhouseController::remove, "/api/greenhouse/{gh_id}", Delete);
+
+    ADD_METHOD_TO(GreenhouseController::cors_options, "/api/greenhouses", Options);
+    ADD_METHOD_TO(GreenhouseController::cors_options, "/api/greenhouses/{gh_id}", Options);
+    ADD_METHOD_TO(GreenhouseController::cors_options, "/api/greenhouses", Options);
+    ADD_METHOD_TO(GreenhouseController::cors_options, "/api/greenhouses/{gh_id}", Options);
+    ADD_METHOD_TO(GreenhouseController::cors_options, "/api/greenhouse/{gh_id}", Options);
+    
     METHOD_LIST_END
 
     // Обработчики
@@ -21,6 +28,8 @@ class GreenhouseController : public HttpController<GreenhouseController> {
     void create(const HttpRequestPtr &req, std::function<void(const HttpResponsePtr &)> &&callback);
     void update(const HttpRequestPtr &req, std::function<void(const HttpResponsePtr &)> &&callback, int gh_id);
     void remove(const HttpRequestPtr &req, std::function<void(const HttpResponsePtr &)> &&callback, int gh_id);
+
+    void cors_options(const HttpRequestPtr &, std::function<void(const HttpResponsePtr &)> &&);
 };
 
 }  // namespace api

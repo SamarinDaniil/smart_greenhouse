@@ -9,11 +9,14 @@ export default function LoginPage() {
   const [error, setError] = useState<string | null>(null);
 
   const onSubmit = async (e: React.FormEvent) => {
+    console.log("auth")
     e.preventDefault();
     setError(null);
     try {
+      console.log("auth try")
       await login(username, password);
     } catch (err) {
+      console.log("auth catch")
       setError("Ошибка входа");
     }
   };

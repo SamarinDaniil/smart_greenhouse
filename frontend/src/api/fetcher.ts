@@ -11,9 +11,9 @@ export async function fetcher<T>(
     ...(token && { Authorization: `Bearer ${token}` }),
     ...options.headers,
   };
-
+  console.log("a")
   const res = await fetch(`${API_URL}${input}`, { ...options, headers });
-
+  console.log("b")
   if (res.status === 401) {
     localStorage.removeItem("token");
     window.location.href = "/login";

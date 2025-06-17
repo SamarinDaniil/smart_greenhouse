@@ -92,8 +92,8 @@ void printBanner()
   / __/_ _  ___ _____/ /_  / ___/______ ___ ___  / /  ___  __ _____ ___ 
  _\ \/  ' \/ _ `/ __/ __/ / (_ / __/ -_) -_) _ \/ _ \/ _ \/ // (_-</ -_)
 /___/_/_/_/\_,_/_/  \__/  \___/_/  \__/\__/_//_/_//_/\___/\_,_/___/\__/ 
-                                                                        
-)" << '\n';
+                                                                        )"
+              << '\n';
 }
 
 // Тест хеширования паролей
@@ -267,6 +267,7 @@ void runRestServer()
             return;
         }
         drogon::app().loadConfigFile("config/config.json");
+        //drogon::app().
         LOG_INFO << "Server starting…";
         auto handlers = app().getHandlersInfo();
         for (const auto &handlerTuple : handlers)

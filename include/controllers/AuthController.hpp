@@ -11,9 +11,12 @@ namespace api
     public:
         METHOD_LIST_BEGIN
         ADD_METHOD_TO(AuthController::login, "/api/login", Post);
+        ADD_METHOD_TO(AuthController::handleOptions, "/api/login", Options);
         METHOD_LIST_END
 
         void login(const HttpRequestPtr &req,
-                  std::function<void(const HttpResponsePtr &)> &&callback);
+                   std::function<void(const HttpResponsePtr &)> &&callback);
+        void handleOptions(const HttpRequestPtr &req,
+                           std::function<void(const HttpResponsePtr &)> &&callback);
     };
 }

@@ -20,6 +20,7 @@ export const AuthProvider: React.FC<React.PropsWithChildren> = ({ children }) =>
   });
 
   const login = async (username: string, password: string) => {
+    console.log("aa")
     const data = await fetcher<{
       role: string;
       token: string;

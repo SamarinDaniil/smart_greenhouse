@@ -6,16 +6,16 @@
 
 namespace api {
 
-// Результат проверки токена
+/// Результат проверки токена
 struct AuthResult {
     bool success = false;
     std::string role;
 };
 
-// Проверяет токен и возвращает роль пользователя или пустой результат
+/// Проверяет токен и возвращает роль пользователя или пустой результат
 AuthResult validateTokenAndGetRole(const drogon::HttpRequestPtr &req);
 
-// Проверяет, является ли пользователь администратором
+/// Проверяет, является ли пользователь администратором
 bool isAdmin(const AuthResult &auth);
 
 } // namespace api
