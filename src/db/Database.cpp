@@ -124,7 +124,7 @@ bool Database::initialize()
             if (current_version != DATABASE_VERSION)
             {
                 LOG_WARN_SG("Schema version mismatch: expected " + std::string(DATABASE_VERSION) +
-                         ", found " + current_version);
+                            ", found " + current_version);
                 // TODO: implement schema migration logic
             }
         }
@@ -199,16 +199,16 @@ bool Database::create_tables()
             rule_id       INTEGER PRIMARY KEY AUTOINCREMENT,  
             gh_id         INTEGER NOT NULL REFERENCES greenhouses(gh_id) ON DELETE CASCADE,  
             name          TEXT NOT NULL,  
-            from_comp_id INTEGER NOT NULL REFERENCES components(comp_id) ON DELETE CASCADE,
-            to_comp_id   INTEGER NOT NULL REFERENCES components(comp_id) ON DELETE CASCADE, 
+            from_comp_id  INTEGER NOT NULL REFERENCES components(comp_id) ON DELETE CASCADE,
+            to_comp_id    INTEGER NOT NULL REFERENCES components(comp_id) ON DELETE CASCADE, 
             kind          TEXT NOT NULL CHECK(kind IN ('time','threshold')),  
-            operator      TEXT CHECK(kind='threshold' AND operator IN ('>','>=','<','<=','=','!=')),  
+            operator      TEXT CHECK(kind != 'threshold' OR operator IN ('>', '>=', '<', '<=', '=', '!=')),  
             threshold     REAL,  
             time_spec     TEXT,  
             enabled       BOOLEAN NOT NULL DEFAULT 1,  
             created_at    DATETIME DEFAULT CURRENT_TIMESTAMP,  
             updated_at    DATETIME DEFAULT CURRENT_TIMESTAMP  
-        );  
+        ); 
 
         -- 5. Пользователи  
         CREATE TABLE users (  
@@ -608,7 +608,7 @@ std::string Database::get_last_error() const
 }
 
 // Transaction RAII implementation
-Database::Transaction::Transaction() 
+Database::Transaction::Transaction()
     : db_(Database::getInstance()), success_(false), committed_(false)
 {
     success_ = db_->begin_transaction();

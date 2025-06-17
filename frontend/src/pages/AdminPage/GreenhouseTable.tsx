@@ -79,7 +79,7 @@ const GreenhousesTable: React.FC = () => {
     if (!window.confirm("Вы уверены, что хотите удалить теплицу?")) return;
 
     try {
-      await fetcher(`/api/greenhouse/${gh_id}`, { method: "DELETE" });
+      await fetcher(`/api/greenhouses/${gh_id}`, { method: "DELETE" });
       setGreenhouses((prev) => prev.filter((gh) => gh.gh_id !== gh_id));
     } catch {
       alert("Ошибка при удалении");

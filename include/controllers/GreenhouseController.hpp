@@ -6,20 +6,17 @@ using namespace drogon;
 namespace api {
 
 class GreenhouseController : public HttpController<GreenhouseController> {
-  public:
+public:
     METHOD_LIST_BEGIN
+    // Основные методы
     ADD_METHOD_TO(GreenhouseController::get_all, "/api/greenhouses", Get);
     ADD_METHOD_TO(GreenhouseController::get_by_id, "/api/greenhouses/{gh_id}", Get);
     ADD_METHOD_TO(GreenhouseController::create, "/api/greenhouses", Post);
     ADD_METHOD_TO(GreenhouseController::update, "/api/greenhouses/{gh_id}", Put);
-    ADD_METHOD_TO(GreenhouseController::remove, "/api/greenhouse/{gh_id}", Delete);
-
+    ADD_METHOD_TO(GreenhouseController::remove, "/api/greenhouses/{gh_id}", Delete); 
+    // CORS обработчики
     ADD_METHOD_TO(GreenhouseController::cors_options, "/api/greenhouses", Options);
     ADD_METHOD_TO(GreenhouseController::cors_options, "/api/greenhouses/{gh_id}", Options);
-    ADD_METHOD_TO(GreenhouseController::cors_options, "/api/greenhouses", Options);
-    ADD_METHOD_TO(GreenhouseController::cors_options, "/api/greenhouses/{gh_id}", Options);
-    ADD_METHOD_TO(GreenhouseController::cors_options, "/api/greenhouse/{gh_id}", Options);
-    
     METHOD_LIST_END
 
     // Обработчики

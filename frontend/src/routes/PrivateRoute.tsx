@@ -13,7 +13,7 @@ export const PrivateRoute: React.FC<PrivateRouteProps> = ({ allowedRoles }) => {
   if (!role) {
     return <Navigate to="/login" replace />;
   }
-
+  // password1234 - for test
   // 2) Роль авторизована, но не входит в allowedRoles → на «домашнюю» страницу роли
   if (allowedRoles && !allowedRoles.includes(role)) {
     const home = role === "admin" ? "/admin" : "/dashboard";

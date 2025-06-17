@@ -12,6 +12,7 @@
 #include "entities/User.hpp"
 #include <optional>
 #include <drogon/HttpClient.h>
+#include "filters/CorsFilter.h"
 #include <thread>
 #include <json/json.h>
 
@@ -53,7 +54,7 @@ namespace
 /* ---------- main ---------- */
 int main(int argc, char *argv[])
 {
-    /* ➋ регистрируем обработчики ДО запуска сервера */
+    INIT_LOGGER_DEFAULT_SG();
     std::signal(SIGINT, onSignal);
     std::signal(SIGTERM, onSignal);
 
@@ -267,6 +268,7 @@ void runRestServer()
             return;
         }
         drogon::app().loadConfigFile("config/config.json");
+        drogon::app().registerFilter(std::make_shared<CorsFilter>());
         //drogon::app().
         LOG_INFO << "Server starting…";
         auto handlers = app().getHandlersInfo();

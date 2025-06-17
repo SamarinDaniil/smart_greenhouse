@@ -25,7 +25,7 @@ namespace api
             resp->addHeader("Access-Control-Allow-Origin", "*");
             resp->addHeader("Access-Control-Allow-Methods", "GET,POST,PUT,DELETE,OPTIONS");
             resp->addHeader("Access-Control-Allow-Headers", "Content-Type, Authorization");
-            resp->addHeader("Access-Control-Max-Age", "600");
+            resp->addHeader("Access-Control-Max-Age", "86400");
             callback(resp);
             return;
         }
@@ -82,7 +82,7 @@ namespace api
             resp->addHeader("Access-Control-Allow-Origin", "*");
             resp->addHeader("Access-Control-Allow-Methods", "GET,POST,PUT,DELETE,OPTIONS");
             resp->addHeader("Access-Control-Allow-Headers", "Content-Type, Authorization");
-            resp->addHeader("Access-Control-Max-Age", "600");
+            resp->addHeader("Access-Control-Max-Age", "86400");
             callback(resp);
         }
         catch (const std::exception &e)
@@ -94,7 +94,7 @@ namespace api
             resp->addHeader("Access-Control-Allow-Origin", "*");
             resp->addHeader("Access-Control-Allow-Methods", "GET,POST,PUT,DELETE,OPTIONS");
             resp->addHeader("Access-Control-Allow-Headers", "Content-Type, Authorization");
-            resp->addHeader("Access-Control-Max-Age", "600");
+            resp->addHeader("Access-Control-Max-Age", "86400");
             callback(resp);
         }
     }
@@ -113,7 +113,7 @@ namespace api
             resp->addHeader("Access-Control-Allow-Origin", "*");
             resp->addHeader("Access-Control-Allow-Methods", "GET,POST,PUT,DELETE,OPTIONS");
             resp->addHeader("Access-Control-Allow-Headers", "Content-Type, Authorization");
-            resp->addHeader("Access-Control-Max-Age", "600");
+            resp->addHeader("Access-Control-Max-Age", "86400");
             callback(resp);
             return;
         }
@@ -133,7 +133,7 @@ namespace api
                 resp->addHeader("Access-Control-Allow-Origin", "*");
                 resp->addHeader("Access-Control-Allow-Methods", "GET,POST,PUT,DELETE,OPTIONS");
                 resp->addHeader("Access-Control-Allow-Headers", "Content-Type, Authorization");
-                resp->addHeader("Access-Control-Max-Age", "600");
+                resp->addHeader("Access-Control-Max-Age", "86400");
                 callback(resp);
                 return;
             }
@@ -142,7 +142,7 @@ namespace api
             resp->addHeader("Access-Control-Allow-Origin", "*");
             resp->addHeader("Access-Control-Allow-Methods", "GET,POST,PUT,DELETE,OPTIONS");
             resp->addHeader("Access-Control-Allow-Headers", "Content-Type, Authorization");
-            resp->addHeader("Access-Control-Max-Age", "600");
+            resp->addHeader("Access-Control-Max-Age", "86400");
             callback(resp);
         }
         catch (const std::exception &e)
@@ -154,7 +154,7 @@ namespace api
             resp->addHeader("Access-Control-Allow-Origin", "*");
             resp->addHeader("Access-Control-Allow-Methods", "GET,POST,PUT,DELETE,OPTIONS");
             resp->addHeader("Access-Control-Allow-Headers", "Content-Type, Authorization");
-            resp->addHeader("Access-Control-Max-Age", "600");
+            resp->addHeader("Access-Control-Max-Age", "86400");
             callback(resp);
         }
     }
@@ -172,7 +172,7 @@ namespace api
             resp->addHeader("Access-Control-Allow-Origin", "*");
             resp->addHeader("Access-Control-Allow-Methods", "GET,POST,PUT,DELETE,OPTIONS");
             resp->addHeader("Access-Control-Allow-Headers", "Content-Type, Authorization");
-            resp->addHeader("Access-Control-Max-Age", "600");
+            resp->addHeader("Access-Control-Max-Age", "86400");
             callback(resp);
             return;
         }
@@ -186,7 +186,7 @@ namespace api
             resp->addHeader("Access-Control-Allow-Origin", "*");
             resp->addHeader("Access-Control-Allow-Methods", "GET,POST,PUT,DELETE,OPTIONS");
             resp->addHeader("Access-Control-Allow-Headers", "Content-Type, Authorization");
-            resp->addHeader("Access-Control-Max-Age", "600");
+            resp->addHeader("Access-Control-Max-Age", "86400");
             callback(resp);
             return;
         }
@@ -207,7 +207,7 @@ namespace api
                 resp->addHeader("Access-Control-Allow-Origin", "*");
                 resp->addHeader("Access-Control-Allow-Methods", "GET,POST,PUT,DELETE,OPTIONS");
                 resp->addHeader("Access-Control-Allow-Headers", "Content-Type, Authorization");
-                resp->addHeader("Access-Control-Max-Age", "600");
+                resp->addHeader("Access-Control-Max-Age", "86400");
                 callback(resp);
                 return;
             }
@@ -224,7 +224,7 @@ namespace api
                 resp->addHeader("Access-Control-Allow-Origin", "*");
                 resp->addHeader("Access-Control-Allow-Methods", "GET,POST,PUT,DELETE,OPTIONS");
                 resp->addHeader("Access-Control-Allow-Headers", "Content-Type, Authorization");
-                resp->addHeader("Access-Control-Max-Age", "600");
+                resp->addHeader("Access-Control-Max-Age", "86400");
                 callback(resp);
                 return;
             }
@@ -238,7 +238,7 @@ namespace api
                 resp->addHeader("Access-Control-Allow-Origin", "*");
                 resp->addHeader("Access-Control-Allow-Methods", "GET,POST,PUT,DELETE,OPTIONS");
                 resp->addHeader("Access-Control-Allow-Headers", "Content-Type, Authorization");
-                resp->addHeader("Access-Control-Max-Age", "600");
+                resp->addHeader("Access-Control-Max-Age", "86400");
                 callback(resp);
                 return;
             }
@@ -250,7 +250,7 @@ namespace api
                 resp->addHeader("Access-Control-Allow-Origin", "*");
                 resp->addHeader("Access-Control-Allow-Methods", "GET,POST,PUT,DELETE,OPTIONS");
                 resp->addHeader("Access-Control-Allow-Headers", "Content-Type, Authorization");
-                resp->addHeader("Access-Control-Max-Age", "600");
+                resp->addHeader("Access-Control-Max-Age", "86400");
                 callback(resp);
             }
             else
@@ -262,7 +262,7 @@ namespace api
                 resp->addHeader("Access-Control-Allow-Origin", "*");
                 resp->addHeader("Access-Control-Allow-Methods", "GET,POST,PUT,DELETE,OPTIONS");
                 resp->addHeader("Access-Control-Allow-Headers", "Content-Type, Authorization");
-                resp->addHeader("Access-Control-Max-Age", "600");
+                resp->addHeader("Access-Control-Max-Age", "86400");
                 callback(resp);
             }
         }
@@ -275,7 +275,7 @@ namespace api
             resp->addHeader("Access-Control-Allow-Origin", "*");
             resp->addHeader("Access-Control-Allow-Methods", "GET,POST,PUT,DELETE,OPTIONS");
             resp->addHeader("Access-Control-Allow-Headers", "Content-Type, Authorization");
-            resp->addHeader("Access-Control-Max-Age", "600");
+            resp->addHeader("Access-Control-Max-Age", "86400");
             callback(resp);
         }
     }
@@ -294,7 +294,7 @@ namespace api
             resp->addHeader("Access-Control-Allow-Origin", "*");
             resp->addHeader("Access-Control-Allow-Methods", "GET,POST,PUT,DELETE,OPTIONS");
             resp->addHeader("Access-Control-Allow-Headers", "Content-Type, Authorization");
-            resp->addHeader("Access-Control-Max-Age", "600");
+            resp->addHeader("Access-Control-Max-Age", "86400");
             callback(resp);
             return;
         }
@@ -308,7 +308,7 @@ namespace api
             resp->addHeader("Access-Control-Allow-Origin", "*");
             resp->addHeader("Access-Control-Allow-Methods", "GET,POST,PUT,DELETE,OPTIONS");
             resp->addHeader("Access-Control-Allow-Headers", "Content-Type, Authorization");
-            resp->addHeader("Access-Control-Max-Age", "600");
+            resp->addHeader("Access-Control-Max-Age", "86400");
             callback(resp);
             return;
         }
@@ -326,7 +326,7 @@ namespace api
                 resp->addHeader("Access-Control-Allow-Origin", "*");
                 resp->addHeader("Access-Control-Allow-Methods", "GET,POST,PUT,DELETE,OPTIONS");
                 resp->addHeader("Access-Control-Allow-Headers", "Content-Type, Authorization");
-                resp->addHeader("Access-Control-Max-Age", "600");
+                resp->addHeader("Access-Control-Max-Age", "86400");
                 callback(resp);
                 return;
             }
@@ -345,7 +345,7 @@ namespace api
                 resp->addHeader("Access-Control-Allow-Origin", "*");
                 resp->addHeader("Access-Control-Allow-Methods", "GET,POST,PUT,DELETE,OPTIONS");
                 resp->addHeader("Access-Control-Allow-Headers", "Content-Type, Authorization");
-                resp->addHeader("Access-Control-Max-Age", "600");
+                resp->addHeader("Access-Control-Max-Age", "86400");
                 callback(resp);
                 return;
             }
@@ -363,7 +363,7 @@ namespace api
                     resp->addHeader("Access-Control-Allow-Origin", "*");
                     resp->addHeader("Access-Control-Allow-Methods", "GET,POST,PUT,DELETE,OPTIONS");
                     resp->addHeader("Access-Control-Allow-Headers", "Content-Type, Authorization");
-                    resp->addHeader("Access-Control-Max-Age", "600");
+                    resp->addHeader("Access-Control-Max-Age", "86400");
                     callback(resp);
                     return;
                 }
@@ -379,7 +379,7 @@ namespace api
                 resp->addHeader("Access-Control-Allow-Origin", "*");
                 resp->addHeader("Access-Control-Allow-Methods", "GET,POST,PUT,DELETE,OPTIONS");
                 resp->addHeader("Access-Control-Allow-Headers", "Content-Type, Authorization");
-                resp->addHeader("Access-Control-Max-Age", "600");
+                resp->addHeader("Access-Control-Max-Age", "86400");
                 callback(resp);
             }
             else
@@ -391,7 +391,7 @@ namespace api
                 resp->addHeader("Access-Control-Allow-Origin", "*");
                 resp->addHeader("Access-Control-Allow-Methods", "GET,POST,PUT,DELETE,OPTIONS");
                 resp->addHeader("Access-Control-Allow-Headers", "Content-Type, Authorization");
-                resp->addHeader("Access-Control-Max-Age", "600");
+                resp->addHeader("Access-Control-Max-Age", "86400");
                 callback(resp);
             }
         }
@@ -404,7 +404,7 @@ namespace api
             resp->addHeader("Access-Control-Allow-Origin", "*");
             resp->addHeader("Access-Control-Allow-Methods", "GET,POST,PUT,DELETE,OPTIONS");
             resp->addHeader("Access-Control-Allow-Headers", "Content-Type, Authorization");
-            resp->addHeader("Access-Control-Max-Age", "600");
+            resp->addHeader("Access-Control-Max-Age", "86400");
             callback(resp);
         }
     }
@@ -423,7 +423,7 @@ namespace api
             resp->addHeader("Access-Control-Allow-Origin", "*");
             resp->addHeader("Access-Control-Allow-Methods", "GET,POST,PUT,DELETE,OPTIONS");
             resp->addHeader("Access-Control-Allow-Headers", "Content-Type, Authorization");
-            resp->addHeader("Access-Control-Max-Age", "600");
+            resp->addHeader("Access-Control-Max-Age", "86400");
             callback(resp);
             return;
         }
@@ -437,7 +437,7 @@ namespace api
             resp->addHeader("Access-Control-Allow-Origin", "*");
             resp->addHeader("Access-Control-Allow-Methods", "GET,POST,PUT,DELETE,OPTIONS");
             resp->addHeader("Access-Control-Allow-Headers", "Content-Type, Authorization");
-            resp->addHeader("Access-Control-Max-Age", "600");
+            resp->addHeader("Access-Control-Max-Age", "86400");
             callback(resp);
             return;
         }
@@ -454,7 +454,7 @@ namespace api
                 resp->addHeader("Access-Control-Allow-Origin", "*");
                 resp->addHeader("Access-Control-Allow-Methods", "GET,POST,PUT,DELETE,OPTIONS");
                 resp->addHeader("Access-Control-Allow-Headers", "Content-Type, Authorization");
-                resp->addHeader("Access-Control-Max-Age", "600");
+                resp->addHeader("Access-Control-Max-Age", "86400");
                 callback(resp);
                 return;
             }
@@ -466,7 +466,7 @@ namespace api
                 resp->addHeader("Access-Control-Allow-Origin", "*");
                 resp->addHeader("Access-Control-Allow-Methods", "GET,POST,PUT,DELETE,OPTIONS");
                 resp->addHeader("Access-Control-Allow-Headers", "Content-Type, Authorization");
-                resp->addHeader("Access-Control-Max-Age", "600");
+                resp->addHeader("Access-Control-Max-Age", "86400");
                 callback(resp);
             }
             else
@@ -478,7 +478,7 @@ namespace api
                 resp->addHeader("Access-Control-Allow-Origin", "*");
                 resp->addHeader("Access-Control-Allow-Methods", "GET,POST,PUT,DELETE,OPTIONS");
                 resp->addHeader("Access-Control-Allow-Headers", "Content-Type, Authorization");
-                resp->addHeader("Access-Control-Max-Age", "600");
+                resp->addHeader("Access-Control-Max-Age", "86400");
                 callback(resp);
             }
         }
@@ -491,7 +491,7 @@ namespace api
             resp->addHeader("Access-Control-Allow-Origin", "*");
             resp->addHeader("Access-Control-Allow-Methods", "GET,POST,PUT,DELETE,OPTIONS");
             resp->addHeader("Access-Control-Allow-Headers", "Content-Type, Authorization");
-            resp->addHeader("Access-Control-Max-Age", "600");
+            resp->addHeader("Access-Control-Max-Age", "86400");
             callback(resp);
         }
     }
@@ -505,7 +505,7 @@ namespace api
         resp->addHeader("Access-Control-Allow-Origin", "*");
         resp->addHeader("Access-Control-Allow-Methods", "GET,POST,PUT,DELETE,OPTIONS");
         resp->addHeader("Access-Control-Allow-Headers", "Content-Type, Authorization");
-        resp->addHeader("Access-Control-Max-Age", "600");
+        resp->addHeader("Access-Control-Max-Age", "86400");
         callback(resp);
     }
 

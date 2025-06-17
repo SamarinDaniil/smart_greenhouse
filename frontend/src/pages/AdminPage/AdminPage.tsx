@@ -4,19 +4,10 @@ import { Container, Row, Col, Table, Card } from "react-bootstrap";
 import { JSX } from "react/jsx-runtime";
 import UsersTable from "./UsersTable";
 import GreenhousesTable from "./GreenhouseTable";
+import ComponentsTable from "./ComponentPage";
 
 const AdminPage: React.FC = () => {
   // Пока статичные данные (можно заменить на useEffect + fetch позже)
-
-  const greenhouses = [
-    { id: 1, name: "Теплица #1", location: "Север" },
-    { id: 2, name: "Теплица #2", location: "Юг" },
-  ];
-
-  const components = [
-    { id: 1, name: "Датчик температуры", type: "Sensor" },
-    { id: 2, name: "Полив", type: "Actuator" },
-  ];
 
   const rules = [
     { id: 1, name: "Автополив при < 20°C", active: true },
@@ -48,17 +39,7 @@ const AdminPage: React.FC = () => {
       <GreenhousesTable />
 
       {/* Components */}
-      {renderTable(
-        "Компоненты",
-        ["ID", "Название", "Тип"],
-        components.map((comp) => (
-          <tr key={comp.id}>
-            <td>{comp.id}</td>
-            <td>{comp.name}</td>
-            <td>{comp.type}</td>
-          </tr>
-        ))
-      )}
+      <ComponentsTable />
 
       {/* Rules */}
       {renderTable(
