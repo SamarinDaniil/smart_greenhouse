@@ -13,14 +13,7 @@ class ComponentController : public HttpController<ComponentController> {
     ADD_METHOD_TO(ComponentController::create, "/api/Components", Post);
     ADD_METHOD_TO(ComponentController::update, "/api/Components/{gh_id}", Put);
     ADD_METHOD_TO(ComponentController::remove, "/api/Component/{gh_id}", Delete);
-
-    ADD_METHOD_TO(ComponentController::cors_options, "/api/Components", Options);
-    ADD_METHOD_TO(ComponentController::cors_options, "/api/Components/{gh_id}", Options);
-    ADD_METHOD_TO(ComponentController::cors_options, "/api/Components", Options);
-    ADD_METHOD_TO(ComponentController::cors_options, "/api/Components/{gh_id}", Options);
-    ADD_METHOD_TO(ComponentController::cors_options, "/api/Component/{gh_id}", Options);
-
-    
+   
     METHOD_LIST_END
 
     // Обработчики
@@ -29,8 +22,6 @@ class ComponentController : public HttpController<ComponentController> {
     void create(const HttpRequestPtr &req, std::function<void(const HttpResponsePtr &)> &&callback);
     void update(const HttpRequestPtr &req, std::function<void(const HttpResponsePtr &)> &&callback, int gh_id);
     void remove(const HttpRequestPtr &req, std::function<void(const HttpResponsePtr &)> &&callback, int gh_id);
-
-    void cors_options(const HttpRequestPtr &, std::function<void(const HttpResponsePtr &)> &&);
 };
 
 }  // namespace api

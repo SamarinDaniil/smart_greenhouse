@@ -21,9 +21,9 @@
         "use_gzip": true,
         "static_files_cache_time": -1,
         "enable_server_header": false,
-        "enable_date_header": false,
-        "handle_options_method": false
+        "enable_date_header": false
     },
+    
     "plugins": [
         {
             "name": "api::DbPlugin",

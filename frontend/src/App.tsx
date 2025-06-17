@@ -7,11 +7,14 @@ import { PrivateRoute } from './routes/PrivateRoute';
 
 import { BrowserRouter } from "react-router-dom";
 import { AuthProvider } from './context/AuthContext';
+import Navbar from "./components/Navbar";
 
 function App() {
   return (
     <BrowserRouter>
     <AuthProvider>
+      
+      <Navbar />
       <Routes>
         <Route path="/login" element={<LoginPage />} />
 
@@ -29,6 +32,7 @@ function App() {
         <Route path="*" element={<h1>404: Not Found</h1>} />
       </Routes>
       </AuthProvider>
+      
     </BrowserRouter>
 )
 

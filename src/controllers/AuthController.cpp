@@ -196,17 +196,3 @@ void AuthController::login(const HttpRequestPtr &req,
     }
 }
 
-void AuthController::handleOptions(const HttpRequestPtr &req,
-                                  std::function<void(const HttpResponsePtr &)> &&callback)
-{
-    LOG_DEBUG << "Handling OPTIONS request from " << req->getPeerAddr().toIpPort();
-    
-    auto resp = HttpResponse::newHttpResponse();
-    resp->addHeader("Access-Control-Allow-Origin", "*");
-    resp->addHeader("Access-Control-Allow-Methods", "POST, OPTIONS");
-    resp->addHeader("Access-Control-Allow-Headers", "Content-Type, Authorization");
-    resp->addHeader("Access-Control-Max-Age", "86400");
-    resp->setStatusCode(k200OK);
-    
-    callback(resp);
-}

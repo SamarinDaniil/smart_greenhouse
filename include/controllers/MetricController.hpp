@@ -11,10 +11,6 @@ class MetricController : public HttpController<MetricController> {
     ADD_METHOD_TO(MetricController::get_metrics,     "/api/metrics",           Get);
     ADD_METHOD_TO(MetricController::get_aggregate,   "/api/metrics/aggregate", Get);
     ADD_METHOD_TO(MetricController::get_latest_metric,"/api/metrics/latest",    Get);
-
-    ADD_METHOD_TO(MetricController::cors_options,     "/api/metrics",           Options);
-    ADD_METHOD_TO(MetricController::cors_options,   "/api/metrics/aggregate", Options);
-    ADD_METHOD_TO(MetricController::cors_options,"/api/metrics/latest",    Options);
     METHOD_LIST_END
 
     // Обработчики
@@ -22,7 +18,6 @@ class MetricController : public HttpController<MetricController> {
     void get_aggregate(const HttpRequestPtr &req, std::function<void(const HttpResponsePtr &)> &&callback);
     void get_latest_metric(const HttpRequestPtr &req, std::function<void(const HttpResponsePtr &)> &&callback);
 
-    void cors_options(const HttpRequestPtr &, std::function<void(const HttpResponsePtr &)> &&);
 };
 
 }  // namespace api

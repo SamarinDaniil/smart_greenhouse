@@ -52,10 +52,6 @@ namespace api
                 auto resp = HttpResponse::newHttpResponse();
                 resp->setStatusCode(k401Unauthorized);
                 resp->setBody("Unauthorized: Invalid or expired token");
-                resp->addHeader("Access-Control-Allow-Origin", "*");
-                resp->addHeader("Access-Control-Allow-Methods", "GET,POST,PUT,DELETE,OPTIONS");
-                resp->addHeader("Access-Control-Allow-Headers", "Content-Type, Authorization");
-                resp->addHeader("Access-Control-Max-Age", "86400");
                 callback(resp);
                 return;
             }
@@ -70,10 +66,6 @@ namespace api
             }
             auto resp = HttpResponse::newHttpJsonResponse(root);
             resp->setStatusCode(k200OK);
-            resp->addHeader("Access-Control-Allow-Origin", "*");
-            resp->addHeader("Access-Control-Allow-Methods", "GET,POST,PUT,DELETE,OPTIONS");
-            resp->addHeader("Access-Control-Allow-Headers", "Content-Type, Authorization");
-            resp->addHeader("Access-Control-Max-Age", "86400");
             callback(resp);
         }
         catch (const std::exception &e)
@@ -81,10 +73,6 @@ namespace api
             LOG_ERROR << "Error fetching greenhouses: " << e.what();
             auto resp = HttpResponse::newHttpJsonResponse(json{{"error", e.what()}});
             resp->setStatusCode(k500InternalServerError);
-            resp->addHeader("Access-Control-Allow-Origin", "*");
-            resp->addHeader("Access-Control-Allow-Methods", "GET,POST,PUT,DELETE,OPTIONS");
-            resp->addHeader("Access-Control-Allow-Headers", "Content-Type, Authorization");
-            resp->addHeader("Access-Control-Max-Age", "86400");
             callback(resp);
         }
     }
@@ -114,66 +102,50 @@ namespace api
      * { "error": "Greenhouse not found" }
      * ```
      */
-    void GreenhouseController::get_by_id(
-        const HttpRequestPtr &req,
-        std::function<void(const HttpResponsePtr &)> &&callback,
-        int gh_id)
+void GreenhouseController::get_by_id(
+    const HttpRequestPtr &req,
+    std::function<void(const HttpResponsePtr &)> &&callback, int gh_id)
+{
+    LOG_INFO << "Greenhouse Request! gh_id : ( " << gh_id << " )";
+    try
     {
-        LOG_INFO << "Greenhouse Request! gh_id : ( " << gh_id << " )";
-        try
+        // Проверка токена
+        auto auth = api::validateTokenAndGetRole(req);
+        if (!auth.success)
         {
-            // Проверка токена
-            auto auth = api::validateTokenAndGetRole(req);
-            if (!auth.success)
-            {
-                auto resp = HttpResponse::newHttpResponse();
-                resp->setStatusCode(k401Unauthorized);
-                resp->setBody("Unauthorized: Invalid or expired token");
-                resp->addHeader("Access-Control-Allow-Origin", "*");
-                resp->addHeader("Access-Control-Allow-Methods", "GET,POST,PUT,DELETE,OPTIONS");
-                resp->addHeader("Access-Control-Allow-Headers", "Content-Type, Authorization");
-                resp->addHeader("Access-Control-Max-Age", "86400");
-                callback(resp);
-                return;
-            }
+            auto resp = HttpResponse::newHttpResponse();
+            resp->setStatusCode(k401Unauthorized);
+            resp->setBody("Unauthorized: Invalid or expired token");
+            callback(resp);
+            return;
+        }
 
-            db::GreenhouseManager manager;
-            auto greenhouse = manager.get_by_id(gh_id);
-            if (!greenhouse)
-            {
-                Json::Value error;
-                error["error"] = "Greenhouse not found";
-                LOG_ERROR << "Greenhouse not found";
-                auto resp = HttpResponse::newHttpJsonResponse(error);
-                resp->setStatusCode(k404NotFound);
-                resp->addHeader("Access-Control-Allow-Origin", "*");
-                resp->addHeader("Access-Control-Allow-Methods", "GET,POST,PUT,DELETE,OPTIONS");
-                resp->addHeader("Access-Control-Allow-Headers", "Content-Type, Authorization");
-                resp->addHeader("Access-Control-Max-Age", "86400");
-                callback(resp);
-                return;
-            }
-            LOG_INFO << "k200OK get dy id";
-            auto resp = HttpResponse::newHttpJsonResponse(greenhouse->toJson());
-            resp->setStatusCode(k200OK);
-            resp->addHeader("Access-Control-Allow-Origin", "*");
-            resp->addHeader("Access-Control-Allow-Methods", "GET,POST,PUT,DELETE,OPTIONS");
-            resp->addHeader("Access-Control-Allow-Headers", "Content-Type, Authorization");
-            resp->addHeader("Access-Control-Max-Age", "86400");
-            callback(resp);
-        }
-        catch (const std::exception &e)
+        db::GreenhouseManager manager;
+        auto greenhouse = manager.get_by_id(gh_id);
+        if (!greenhouse)
         {
-            LOG_ERROR << "Error fetching greenhouse: " << e.what();
-            auto resp = HttpResponse::newHttpJsonResponse(json{{"error", e.what()}});
-            resp->setStatusCode(k500InternalServerError);
-            resp->addHeader("Access-Control-Allow-Origin", "*");
-            resp->addHeader("Access-Control-Allow-Methods", "GET,POST,PUT,DELETE,OPTIONS");
-            resp->addHeader("Access-Control-Allow-Headers", "Content-Type, Authorization");
-            resp->addHeader("Access-Control-Max-Age", "86400");
+            Json::Value error;
+            error["error"] = "Greenhouse not found";
+            LOG_ERROR << "Greenhouse not found";
+            auto resp = HttpResponse::newHttpJsonResponse(error);
+            resp->setStatusCode(k404NotFound);
             callback(resp);
+            return;
         }
+        LOG_INFO << "k200OK get dy id";
+        auto resp = HttpResponse::newHttpJsonResponse(greenhouse->toJson());
+        resp->setStatusCode(k200OK);
+        callback(resp);
     }
+    catch (const std::exception &e)
+    {
+        LOG_ERROR << "Error fetching greenhouse: " << e.what();
+        auto resp =
+            HttpResponse::newHttpJsonResponse(json{{"error", e.what()}});
+        resp->setStatusCode(k500InternalServerError);
+        callback(resp);
+    }
+}
 
     /**
      * @brief Создает новую теплицу (требуется роль admin)
@@ -219,10 +191,6 @@ namespace api
                 auto resp = HttpResponse::newHttpResponse();
                 resp->setStatusCode(k401Unauthorized);
                 resp->setBody("Unauthorized: Invalid or expired token");
-                resp->addHeader("Access-Control-Allow-Origin", "*");
-                resp->addHeader("Access-Control-Allow-Methods", "GET,POST,PUT,DELETE,OPTIONS");
-                resp->addHeader("Access-Control-Allow-Headers", "Content-Type, Authorization");
-                resp->addHeader("Access-Control-Max-Age", "86400");
                 callback(resp);
                 return;
             }
@@ -233,10 +201,6 @@ namespace api
                 auto resp = HttpResponse::newHttpResponse();
                 resp->setStatusCode(k403Forbidden);
                 resp->setBody("Forbidden: Admin access required");
-                resp->addHeader("Access-Control-Allow-Origin", "*");
-                resp->addHeader("Access-Control-Allow-Methods", "GET,POST,PUT,DELETE,OPTIONS");
-                resp->addHeader("Access-Control-Allow-Headers", "Content-Type, Authorization");
-                resp->addHeader("Access-Control-Max-Age", "86400");
                 callback(resp);
                 return;
             }
@@ -259,10 +223,6 @@ namespace api
                 error["error"] = "Missing required field: name";
                 auto resp = HttpResponse::newHttpJsonResponse(error);
                 resp->setStatusCode(k400BadRequest);
-                resp->addHeader("Access-Control-Allow-Origin", "*");
-                resp->addHeader("Access-Control-Allow-Methods", "GET,POST,PUT,DELETE,OPTIONS");
-                resp->addHeader("Access-Control-Allow-Headers", "Content-Type, Authorization");
-                resp->addHeader("Access-Control-Max-Age", "86400");
                 callback(resp);
                 return;
             }
@@ -307,10 +267,6 @@ namespace api
                 error["error"] = "Failed to create greenhouse";
                 auto resp = HttpResponse::newHttpJsonResponse(error);
                 resp->setStatusCode(k500InternalServerError);
-                resp->addHeader("Access-Control-Allow-Origin", "*");
-                resp->addHeader("Access-Control-Allow-Methods", "GET,POST,PUT,DELETE,OPTIONS");
-                resp->addHeader("Access-Control-Allow-Headers", "Content-Type, Authorization");
-                resp->addHeader("Access-Control-Max-Age", "86400");
                 callback(resp);
             }
         }
@@ -319,10 +275,6 @@ namespace api
             LOG_ERROR << "Error creating greenhouse: " << e.what();
             auto resp = HttpResponse::newHttpJsonResponse(json{{"error", e.what()}});
             resp->setStatusCode(k400BadRequest);
-            resp->addHeader("Access-Control-Allow-Origin", "*");
-            resp->addHeader("Access-Control-Allow-Methods", "GET,POST,PUT,DELETE,OPTIONS");
-            resp->addHeader("Access-Control-Allow-Headers", "Content-Type, Authorization");
-            resp->addHeader("Access-Control-Max-Age", "86400");
             callback(resp);
         }
     }
@@ -372,10 +324,6 @@ namespace api
                 auto resp = HttpResponse::newHttpResponse();
                 resp->setStatusCode(k401Unauthorized);
                 resp->setBody("Unauthorized: Invalid or expired token");
-                resp->addHeader("Access-Control-Allow-Origin", "*");
-                resp->addHeader("Access-Control-Allow-Methods", "GET,POST,PUT,DELETE,OPTIONS");
-                resp->addHeader("Access-Control-Allow-Headers", "Content-Type, Authorization");
-                resp->addHeader("Access-Control-Max-Age", "86400");
                 callback(resp);
                 return;
             }
@@ -386,10 +334,6 @@ namespace api
                 auto resp = HttpResponse::newHttpResponse();
                 resp->setStatusCode(k403Forbidden);
                 resp->setBody("Forbidden: Admin access required");
-                resp->addHeader("Access-Control-Allow-Origin", "*");
-                resp->addHeader("Access-Control-Allow-Methods", "GET,POST,PUT,DELETE,OPTIONS");
-                resp->addHeader("Access-Control-Allow-Headers", "Content-Type, Authorization");
-                resp->addHeader("Access-Control-Max-Age", "86400");
                 callback(resp);
                 return;
             }
@@ -406,10 +350,6 @@ namespace api
                 error["error"] = "Invalid JSON format: " + errs;
                 auto resp = HttpResponse::newHttpJsonResponse(error);
                 resp->setStatusCode(k400BadRequest);
-                resp->addHeader("Access-Control-Allow-Origin", "*");
-                resp->addHeader("Access-Control-Allow-Methods", "GET,POST,PUT,DELETE,OPTIONS");
-                resp->addHeader("Access-Control-Allow-Headers", "Content-Type, Authorization");
-                resp->addHeader("Access-Control-Max-Age", "86400");
                 callback(resp);
                 return;
             }
@@ -424,10 +364,6 @@ namespace api
                 error["error"] = "Greenhouse not found";
                 auto resp = HttpResponse::newHttpJsonResponse(error);
                 resp->setStatusCode(k404NotFound);
-                resp->addHeader("Access-Control-Allow-Origin", "*");
-                resp->addHeader("Access-Control-Allow-Methods", "GET,POST,PUT,DELETE,OPTIONS");
-                resp->addHeader("Access-Control-Allow-Headers", "Content-Type, Authorization");
-                resp->addHeader("Access-Control-Max-Age", "86400");
                 callback(resp);
                 return;
             }
@@ -447,10 +383,6 @@ namespace api
             {
                 auto resp = HttpResponse::newHttpJsonResponse(greenhouse->toJson());
                 resp->setStatusCode(k200OK);
-                resp->addHeader("Access-Control-Allow-Origin", "*");
-                resp->addHeader("Access-Control-Allow-Methods", "GET,POST,PUT,DELETE,OPTIONS");
-                resp->addHeader("Access-Control-Allow-Headers", "Content-Type, Authorization");
-                resp->addHeader("Access-Control-Max-Age", "86400");
                 callback(resp);
             }
             else
@@ -459,10 +391,6 @@ namespace api
                 error["error"] = "Failed to update greenhouse";
                 auto resp = HttpResponse::newHttpJsonResponse(error);
                 resp->setStatusCode(k500InternalServerError);
-                resp->addHeader("Access-Control-Allow-Origin", "*");
-                resp->addHeader("Access-Control-Allow-Methods", "GET,POST,PUT,DELETE,OPTIONS");
-                resp->addHeader("Access-Control-Allow-Headers", "Content-Type, Authorization");
-                resp->addHeader("Access-Control-Max-Age", "86400");
                 callback(resp);
             }
         }
@@ -473,10 +401,6 @@ namespace api
             error["error"] = e.what();
             auto resp = HttpResponse::newHttpJsonResponse(error);
             resp->setStatusCode(k400BadRequest);
-            resp->addHeader("Access-Control-Allow-Origin", "*");
-            resp->addHeader("Access-Control-Allow-Methods", "GET,POST,PUT,DELETE,OPTIONS");
-            resp->addHeader("Access-Control-Allow-Headers", "Content-Type, Authorization");
-            resp->addHeader("Access-Control-Max-Age", "86400");
             callback(resp);
         }
     }
@@ -514,10 +438,6 @@ namespace api
                 auto resp = HttpResponse::newHttpResponse();
                 resp->setStatusCode(k401Unauthorized);
                 resp->setBody("Unauthorized: Invalid or expired token");
-                resp->addHeader("Access-Control-Allow-Origin", "*");
-                resp->addHeader("Access-Control-Allow-Methods", "GET,POST,PUT,DELETE,OPTIONS");
-                resp->addHeader("Access-Control-Allow-Headers", "Content-Type, Authorization");
-                resp->addHeader("Access-Control-Max-Age", "86400");
                 callback(resp);
                 return;
             }
@@ -528,10 +448,6 @@ namespace api
                 auto resp = HttpResponse::newHttpResponse();
                 resp->setStatusCode(k403Forbidden);
                 resp->setBody("Forbidden: Admin access required");
-                resp->addHeader("Access-Control-Allow-Origin", "*");
-                resp->addHeader("Access-Control-Allow-Methods", "GET,POST,PUT,DELETE,OPTIONS");
-                resp->addHeader("Access-Control-Allow-Headers", "Content-Type, Authorization");
-                resp->addHeader("Access-Control-Max-Age", "86400");
                 callback(resp);
                 return;
             }
@@ -544,10 +460,6 @@ namespace api
                 resp->setStatusCode(k200OK);
                 resp->setBody("Greenhouse deleted");
                 resp->setContentTypeCode(CT_TEXT_PLAIN);
-                resp->addHeader("Access-Control-Allow-Origin", "*");
-                resp->addHeader("Access-Control-Allow-Methods", "GET,POST,PUT,DELETE,OPTIONS");
-                resp->addHeader("Access-Control-Allow-Headers", "Content-Type, Authorization");
-                resp->addHeader("Access-Control-Max-Age", "86400");
                 callback(resp);
             }
             else
@@ -556,10 +468,6 @@ namespace api
                 error["error"] = "Greenhouse not found";
                 auto resp = HttpResponse::newHttpJsonResponse(error);
                 resp->setStatusCode(k404NotFound);
-                resp->addHeader("Access-Control-Allow-Origin", "*");
-                resp->addHeader("Access-Control-Allow-Methods", "GET,POST,PUT,DELETE,OPTIONS");
-                resp->addHeader("Access-Control-Allow-Headers", "Content-Type, Authorization");
-                resp->addHeader("Access-Control-Max-Age", "86400");
                 callback(resp);
             }
         }
@@ -570,25 +478,8 @@ namespace api
             error["error"] = e.what();
             auto resp = HttpResponse::newHttpJsonResponse(error);
             resp->setStatusCode(k500InternalServerError);
-            resp->addHeader("Access-Control-Allow-Origin", "*");
-            resp->addHeader("Access-Control-Allow-Methods", "GET,POST,PUT,DELETE,OPTIONS");
-            resp->addHeader("Access-Control-Allow-Headers", "Content-Type, Authorization");
-            resp->addHeader("Access-Control-Max-Age", "86400");
             callback(resp);
         }
-    }
-
-    void GreenhouseController::cors_options(
-        const HttpRequestPtr & /*req*/,
-        std::function<void(const HttpResponsePtr &)> &&callback)
-    {
-        auto resp = HttpResponse::newHttpResponse();
-        resp->addHeader("Access-Control-Allow-Origin", "*");
-        resp->addHeader("Access-Control-Allow-Methods", "GET,POST,PUT,DELETE,OPTIONS");
-        resp->addHeader("Access-Control-Allow-Headers", "Content-Type, Authorization");
-        resp->addHeader("Access-Control-Max-Age", "86400"); // кэш preflight 10 минут
-        resp->setStatusCode(k200OK);
-        callback(resp);
     }
 
 } // namespace api

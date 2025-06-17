@@ -5,14 +5,9 @@ import { JSX } from "react/jsx-runtime";
 import UsersTable from "./UsersTable";
 import GreenhousesTable from "./GreenhouseTable";
 import ComponentsTable from "./ComponentPage";
+import RuleTable from "./RuleTable";
 
 const AdminPage: React.FC = () => {
-  // Пока статичные данные (можно заменить на useEffect + fetch позже)
-
-  const rules = [
-    { id: 1, name: "Автополив при < 20°C", active: true },
-    { id: 2, name: "Тревога при > 35°C", active: false },
-  ];
 
   const renderTable = (title: string, headers: string[], rows: JSX.Element[]) => (
     <Card className="mb-4 shadow-sm">
@@ -42,17 +37,8 @@ const AdminPage: React.FC = () => {
       <ComponentsTable />
 
       {/* Rules */}
-      {renderTable(
-        "Правила",
-        ["ID", "Название", "Активно"],
-        rules.map((rule) => (
-          <tr key={rule.id}>
-            <td>{rule.id}</td>
-            <td>{rule.name}</td>
-            <td>{rule.active ? "Да" : "Нет"}</td>
-          </tr>
-        ))
-      )}
+      <RuleTable />
+
     </Container>
   );
 };

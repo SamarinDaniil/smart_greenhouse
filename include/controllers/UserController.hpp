@@ -15,12 +15,6 @@ namespace api
         ADD_METHOD_TO(UserController::get_user, "/api/users/{user_id}", Get);
         ADD_METHOD_TO(UserController::update_user, "/api/users/{user_id}", Put);
 
-        ADD_METHOD_TO(UserController::cors_options, "/api/users", Options);
-        ADD_METHOD_TO(UserController::register_user, "/api/register", Options);
-        ADD_METHOD_TO(UserController::get_all_users, "/api/users", Options);
-        ADD_METHOD_TO(UserController::get_user, "/api/users/{user_id}", Options);
-        ADD_METHOD_TO(UserController::update_user, "/api/users/{user_id}", Options);
-
         METHOD_LIST_END
 
         // Обработчики
@@ -28,8 +22,6 @@ namespace api
         void get_all_users(const HttpRequestPtr &req, std::function<void(const HttpResponsePtr &)> &&callback);
         void get_user(const HttpRequestPtr &req, std::function<void(const HttpResponsePtr &)> &&callback, int user_id);
         void update_user(const HttpRequestPtr &req, std::function<void(const HttpResponsePtr &)> &&callback, int user_id);
-
-        void cors_options(const HttpRequestPtr &, std::function<void(const HttpResponsePtr &)> &&);
     };
 
 } // namespace api

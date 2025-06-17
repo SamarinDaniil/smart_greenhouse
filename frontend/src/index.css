@@ -1,23 +1,34 @@
-/* src/index.css */
 body {
   margin: 0;
-  font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', 'Roboto', 'Oxygen',
-    'Ubuntu', 'Cantarell', 'Fira Sans', 'Droid Sans', 'Helvetica Neue',
-    sans-serif;
-  -webkit-font-smoothing: antialiased;
-  -moz-osx-font-smoothing: grayscale;
+  font-family: 'Segoe UI', Roboto, 'Helvetica Neue', sans-serif;
+  background-color: #f5f9f4;
+  color: #1f2937;
+}
+
+a {
+  color: #2563eb;
+  text-decoration: none;
+}
+
+a:hover {
+  color: #1d4ed8;
+  text-decoration: underline;
 }
 
 .btn-primary {
-  background-color: #2563eb;
-  border-color: #2563eb;
+  background-color: #34a853;
+  border-color: #34a853;
 }
 
 .btn-primary:hover,
 .btn-primary:focus,
 .btn-primary:active {
-  background-color: #1d4ed8;
-  border-color: #1d4ed8;
+  background-color: #2f9b4f;
+  border-color: #2f9b4f;
+}
+
+.btn-outline-danger {
+  border-radius: 8px;
 }
 
 .rounded-3 {
@@ -25,6 +36,6 @@ body {
 }
 
 .form-control:focus {
-  border-color: #2563eb;
-  box-shadow: 0 0 0 0.25rem rgba(37, 99, 235, 0.25);
+  border-color: #34a853;
+  box-shadow: 0 0 0 0.25rem rgba(52, 168, 83, 0.25);
 }

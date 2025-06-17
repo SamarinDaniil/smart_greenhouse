@@ -12,9 +12,11 @@
 #include "entities/User.hpp"
 #include <optional>
 #include <drogon/HttpClient.h>
-#include "filters/CorsFilter.h"
 #include <thread>
 #include <json/json.h>
+#include <drogon/HttpAppFramework.h>
+#include <drogon/HttpResponse.h>
+#include "trantor/utils/Logger.h"
 
 const std::string TEST_USERNAME = "SamarinDaniil";
 const std::string TEST_PASSWORD = "23s1dfSamarin";
@@ -22,6 +24,66 @@ const std::string TEST_PASSWORD2 = "MasMira42";
 
 using namespace drogon;
 using namespace api;
+
+void setupCors()
+{
+    // 1. Обработка preflight-запросов (OPTIONS)
+    app().registerSyncAdvice([](const HttpRequestPtr &req) -> HttpResponsePtr {
+        if (req->method() == HttpMethod::Options) {
+            auto resp = HttpResponse::newHttpResponse();
+            resp->setStatusCode(k200OK);
+
+            // Разрешаем домен, откуда пришел запрос
+            const auto &origin = req->getHeader("Origin");
+            if (!origin.empty()) {
+                resp->addHeader("Access-Control-Allow-Origin", origin);
+            } else {
+                resp->addHeader("Access-Control-Allow-Origin", "*");
+            }
+
+            // Разрешаем запрошенный метод
+            const auto &requestMethod = req->getHeader("Access-Control-Request-Method");
+            if (!requestMethod.empty()) {
+                resp->addHeader("Access-Control-Allow-Methods", requestMethod);
+            } else {
+                // Разрешаем все основные методы по умолчанию
+                resp->addHeader("Access-Control-Allow-Methods", "GET, POST, PUT, DELETE, OPTIONS");
+            }
+
+            // Разрешаем передачу авторизации
+            resp->addHeader("Access-Control-Allow-Credentials", "true");
+
+            // Разрешаем запрошенные заголовки
+            const auto &requestHeaders = req->getHeader("Access-Control-Request-Headers");
+            if (!requestHeaders.empty()) {
+                resp->addHeader("Access-Control-Allow-Headers", requestHeaders);
+            } else {
+                // Стандартные заголовки
+                resp->addHeader("Access-Control-Allow-Headers", "Content-Type, Authorization");
+            }
+            return resp;
+        }
+        return nullptr; // Пропускаем другие методы
+    });
+
+    // 2. Добавление CORS-заголовков ко всем ответам
+    app().registerPostHandlingAdvice([](const HttpRequestPtr &req, const HttpResponsePtr &resp) {
+        // Разрешаем домен источника
+        const auto &origin = req->getHeader("Origin");
+        if (!origin.empty()) {
+            resp->addHeader("Access-Control-Allow-Origin", origin);
+        } else {
+            resp->addHeader("Access-Control-Allow-Origin", "*");
+        }
+
+        // Разрешаем учетные данные
+        resp->addHeader("Access-Control-Allow-Credentials", "true");
+
+        // Дополнительные заголовки для безопасности
+        resp->addHeader("Vary", "Origin");
+        resp->addHeader("X-Content-Type-Options", "nosniff");
+    });
+}
 
 void testPasswordHashing();
 void testDatabase();
@@ -267,8 +329,9 @@ void runRestServer()
             std::cerr << "Database initialization: FAILURE" << std::endl;
             return;
         }
+        setupCors();
         drogon::app().loadConfigFile("config/config.json");
-        drogon::app().registerFilter(std::make_shared<CorsFilter>());
+        //drogon::app().registerFilter(std::make_shared<CorsFilter>());
         //drogon::app().
         LOG_INFO << "Server starting…";
         auto handlers = app().getHandlersInfo();
