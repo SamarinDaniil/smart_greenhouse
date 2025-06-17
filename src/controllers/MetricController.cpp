@@ -23,6 +23,10 @@ namespace api
             auto resp = HttpResponse::newHttpResponse();
             resp->setStatusCode(k401Unauthorized);
             resp->setBody("Unauthorized: Invalid or expired token");
+            resp->addHeader("Access-Control-Allow-Origin", "*");
+            resp->addHeader("Access-Control-Allow-Methods", "GET,POST,PUT,DELETE,OPTIONS");
+            resp->addHeader("Access-Control-Allow-Headers", "Content-Type, Authorization");
+            resp->addHeader("Access-Control-Max-Age", "86400");
             callback(resp);
             return;
         }
@@ -59,6 +63,10 @@ namespace api
                 auto resp = HttpResponse::newHttpResponse();
                 resp->setStatusCode(k400BadRequest);
                 resp->setBody("Missing required parameters: gh_id or subtype");
+                resp->addHeader("Access-Control-Allow-Origin", "*");
+                resp->addHeader("Access-Control-Allow-Methods", "GET,POST,PUT,DELETE,OPTIONS");
+                resp->addHeader("Access-Control-Allow-Headers", "Content-Type, Authorization");
+                resp->addHeader("Access-Control-Max-Age", "86400");
                 callback(resp);
                 return;
             }
@@ -67,6 +75,10 @@ namespace api
                 arr.append(m.toJson()); // Автоматически использует новые имена полей
             auto resp = HttpResponse::newHttpJsonResponse(arr);
             resp->setStatusCode(k200OK);
+            resp->addHeader("Access-Control-Allow-Origin", "*");
+            resp->addHeader("Access-Control-Allow-Methods", "GET,POST,PUT,DELETE,OPTIONS");
+            resp->addHeader("Access-Control-Allow-Headers", "Content-Type, Authorization");
+            resp->addHeader("Access-Control-Max-Age", "86400");
             callback(resp);
         }
         catch (const std::exception &e)
@@ -75,6 +87,10 @@ namespace api
             auto resp = HttpResponse::newHttpResponse();
             resp->setStatusCode(k400BadRequest);
             resp->setBody(e.what());
+            resp->addHeader("Access-Control-Allow-Origin", "*");
+            resp->addHeader("Access-Control-Allow-Methods", "GET,POST,PUT,DELETE,OPTIONS");
+            resp->addHeader("Access-Control-Allow-Headers", "Content-Type, Authorization");
+            resp->addHeader("Access-Control-Max-Age", "86400");
             callback(resp);
         }
     }
@@ -89,6 +105,10 @@ namespace api
             auto resp = HttpResponse::newHttpResponse();
             resp->setStatusCode(k401Unauthorized);
             resp->setBody("Unauthorized: Invalid or expired token");
+            resp->addHeader("Access-Control-Allow-Origin", "*");
+            resp->addHeader("Access-Control-Allow-Methods", "GET,POST,PUT,DELETE,OPTIONS");
+            resp->addHeader("Access-Control-Allow-Headers", "Content-Type, Authorization");
+            resp->addHeader("Access-Control-Max-Age", "86400");
             callback(resp);
             return;
         }
@@ -102,6 +122,10 @@ namespace api
                 auto resp = HttpResponse::newHttpResponse();
                 resp->setStatusCode(k400BadRequest);
                 resp->setBody("Missing required parameters: gh_id, subtype, function, from, to");
+                resp->addHeader("Access-Control-Allow-Origin", "*");
+                resp->addHeader("Access-Control-Allow-Methods", "GET,POST,PUT,DELETE,OPTIONS");
+                resp->addHeader("Access-Control-Allow-Headers", "Content-Type, Authorization");
+                resp->addHeader("Access-Control-Max-Age", "86400");
                 callback(resp);
                 return;
             }
@@ -122,6 +146,10 @@ namespace api
                 auto resp = HttpResponse::newHttpResponse();
                 resp->setStatusCode(k400BadRequest);
                 resp->setBody("Invalid function: use avg, min, or max");
+                resp->addHeader("Access-Control-Allow-Origin", "*");
+                resp->addHeader("Access-Control-Allow-Methods", "GET,POST,PUT,DELETE,OPTIONS");
+                resp->addHeader("Access-Control-Allow-Headers", "Content-Type, Authorization");
+                resp->addHeader("Access-Control-Max-Age", "86400");
                 callback(resp);
                 return;
             }
@@ -131,6 +159,10 @@ namespace api
                 j["value"] = *res; // Без изменений
                 auto resp = HttpResponse::newHttpJsonResponse(j);
                 resp->setStatusCode(k200OK);
+                resp->addHeader("Access-Control-Allow-Origin", "*");
+                resp->addHeader("Access-Control-Allow-Methods", "GET,POST,PUT,DELETE,OPTIONS");
+                resp->addHeader("Access-Control-Allow-Headers", "Content-Type, Authorization");
+                resp->addHeader("Access-Control-Max-Age", "86400");
                 callback(resp);
             }
             else
@@ -138,6 +170,10 @@ namespace api
                 auto resp = HttpResponse::newHttpResponse();
                 resp->setStatusCode(k404NotFound);
                 resp->setBody("No data found");
+                resp->addHeader("Access-Control-Allow-Origin", "*");
+                resp->addHeader("Access-Control-Allow-Methods", "GET,POST,PUT,DELETE,OPTIONS");
+                resp->addHeader("Access-Control-Allow-Headers", "Content-Type, Authorization");
+                resp->addHeader("Access-Control-Max-Age", "86400");
                 callback(resp);
             }
         }
@@ -147,6 +183,10 @@ namespace api
             auto resp = HttpResponse::newHttpResponse();
             resp->setStatusCode(k400BadRequest);
             resp->setBody(e.what());
+            resp->addHeader("Access-Control-Allow-Origin", "*");
+            resp->addHeader("Access-Control-Allow-Methods", "GET,POST,PUT,DELETE,OPTIONS");
+            resp->addHeader("Access-Control-Allow-Headers", "Content-Type, Authorization");
+            resp->addHeader("Access-Control-Max-Age", "86400");
             callback(resp);
         }
     }
@@ -161,6 +201,10 @@ namespace api
             auto resp = HttpResponse::newHttpResponse();
             resp->setStatusCode(k401Unauthorized);
             resp->setBody("Unauthorized: Invalid or expired token");
+            resp->addHeader("Access-Control-Allow-Origin", "*");
+            resp->addHeader("Access-Control-Allow-Methods", "GET,POST,PUT,DELETE,OPTIONS");
+            resp->addHeader("Access-Control-Allow-Headers", "Content-Type, Authorization");
+            resp->addHeader("Access-Control-Max-Age", "86400");
             callback(resp);
             return;
         }
@@ -174,6 +218,10 @@ namespace api
                 auto resp = HttpResponse::newHttpResponse();
                 resp->setStatusCode(k400BadRequest);
                 resp->setBody("Missing required parameters: gh_id and subtype");
+                resp->addHeader("Access-Control-Allow-Origin", "*");
+                resp->addHeader("Access-Control-Allow-Methods", "GET,POST,PUT,DELETE,OPTIONS");
+                resp->addHeader("Access-Control-Allow-Headers", "Content-Type, Authorization");
+                resp->addHeader("Access-Control-Max-Age", "86400");
                 callback(resp);
                 return;
             }
@@ -187,6 +235,10 @@ namespace api
                 // Использует обновленный toJson() с новыми именами
                 auto resp = HttpResponse::newHttpJsonResponse(metricOpt->toJson());
                 resp->setStatusCode(k200OK);
+                resp->addHeader("Access-Control-Allow-Origin", "*");
+                resp->addHeader("Access-Control-Allow-Methods", "GET,POST,PUT,DELETE,OPTIONS");
+                resp->addHeader("Access-Control-Allow-Headers", "Content-Type, Authorization");
+                resp->addHeader("Access-Control-Max-Age", "86400");
                 callback(resp);
             }
             else
@@ -194,6 +246,10 @@ namespace api
                 auto resp = HttpResponse::newHttpResponse();
                 resp->setStatusCode(k404NotFound);
                 resp->setBody("No metrics found");
+                resp->addHeader("Access-Control-Allow-Origin", "*");
+                resp->addHeader("Access-Control-Allow-Methods", "GET,POST,PUT,DELETE,OPTIONS");
+                resp->addHeader("Access-Control-Allow-Headers", "Content-Type, Authorization");
+                resp->addHeader("Access-Control-Max-Age", "86400");
                 callback(resp);
             }
         }
@@ -203,10 +259,14 @@ namespace api
             auto resp = HttpResponse::newHttpResponse();
             resp->setStatusCode(k400BadRequest);
             resp->setBody(e.what());
+            resp->addHeader("Access-Control-Allow-Origin", "*");
+            resp->addHeader("Access-Control-Allow-Methods", "GET,POST,PUT,DELETE,OPTIONS");
+            resp->addHeader("Access-Control-Allow-Headers", "Content-Type, Authorization");
+            resp->addHeader("Access-Control-Max-Age", "86400");
             callback(resp);
         }
     }
-        void MetricController::cors_options(
+    void MetricController::cors_options(
         const HttpRequestPtr & /*req*/,
         std::function<void(const HttpResponsePtr &)> &&callback)
     {
@@ -215,7 +275,7 @@ namespace api
         resp->addHeader("Access-Control-Allow-Origin", "*");
         resp->addHeader("Access-Control-Allow-Methods", "GET,POST,PUT,DELETE,OPTIONS");
         resp->addHeader("Access-Control-Allow-Headers", "Content-Type, Authorization");
-        resp->addHeader("Access-Control-Max-Age", "86400"); 
+        resp->addHeader("Access-Control-Max-Age", "86400");
         callback(resp);
     }
 } // namespace api
