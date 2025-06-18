@@ -18,6 +18,8 @@
 #include <drogon/HttpAppFramework.h>
 #include <drogon/HttpResponse.h>
 #include "trantor/utils/Logger.h"
+#include "processor/ServerProcessor.hpp"
+#include <boost/asio/io_context.hpp>
 
 const std::string TEST_USERNAME = "SamarinDaniil";
 const std::string TEST_PASSWORD = "23s1dfSamarin";
@@ -29,47 +31,59 @@ using namespace api;
 void setupCors()
 {
     // 1. Обработка preflight-запросов (OPTIONS)
-    app().registerSyncAdvice([](const HttpRequestPtr &req) -> HttpResponsePtr {
-        if (req->method() == HttpMethod::Options) {
-            auto resp = HttpResponse::newHttpResponse();
-            resp->setStatusCode(k200OK);
+    app().registerSyncAdvice([](const HttpRequestPtr &req) -> HttpResponsePtr
+                             {
+                                 if (req->method() == HttpMethod::Options)
+                                 {
+                                     auto resp = HttpResponse::newHttpResponse();
+                                     resp->setStatusCode(k200OK);
 
-            // Разрешаем домен, откуда пришел запрос
-            const auto &origin = req->getHeader("Origin");
-            if (!origin.empty()) {
-                resp->addHeader("Access-Control-Allow-Origin", origin);
-            } else {
-                resp->addHeader("Access-Control-Allow-Origin", "*");
-            }
+                                     // Разрешаем домен, откуда пришел запрос
+                                     const auto &origin = req->getHeader("Origin");
+                                     if (!origin.empty())
+                                     {
+                                         resp->addHeader("Access-Control-Allow-Origin", origin);
+                                     }
+                                     else
+                                     {
+                                         resp->addHeader("Access-Control-Allow-Origin", "*");
+                                     }
 
-            // Разрешаем запрошенный метод
-            const auto &requestMethod = req->getHeader("Access-Control-Request-Method");
-            if (!requestMethod.empty()) {
-                resp->addHeader("Access-Control-Allow-Methods", requestMethod);
-            } else {
-                // Разрешаем все основные методы по умолчанию
-                resp->addHeader("Access-Control-Allow-Methods", "GET, POST, PUT, DELETE, OPTIONS");
-            }
+                                     // Разрешаем запрошенный метод
+                                     const auto &requestMethod = req->getHeader("Access-Control-Request-Method");
+                                     if (!requestMethod.empty())
+                                     {
+                                         resp->addHeader("Access-Control-Allow-Methods", requestMethod);
+                                     }
+                                     else
+                                     {
+                                         // Разрешаем все основные методы по умолчанию
+                                         resp->addHeader("Access-Control-Allow-Methods", "GET, POST, PUT, DELETE, OPTIONS");
+                                     }
 
-            // Разрешаем передачу авторизации
-            resp->addHeader("Access-Control-Allow-Credentials", "true");
+                                     // Разрешаем передачу авторизации
+                                     resp->addHeader("Access-Control-Allow-Credentials", "true");
 
-            // Разрешаем запрошенные заголовки
-            const auto &requestHeaders = req->getHeader("Access-Control-Request-Headers");
-            if (!requestHeaders.empty()) {
-                resp->addHeader("Access-Control-Allow-Headers", requestHeaders);
-            } else {
-                // Стандартные заголовки
-                resp->addHeader("Access-Control-Allow-Headers", "Content-Type, Authorization");
-            }
-            return resp;
-        }
-        return nullptr; // Пропускаем другие методы
-    });
+                                     // Разрешаем запрошенные заголовки
+                                     const auto &requestHeaders = req->getHeader("Access-Control-Request-Headers");
+                                     if (!requestHeaders.empty())
+                                     {
+                                         resp->addHeader("Access-Control-Allow-Headers", requestHeaders);
+                                     }
+                                     else
+                                     {
+                                         // Стандартные заголовки
+                                         resp->addHeader("Access-Control-Allow-Headers", "Content-Type, Authorization");
+                                     }
+                                     return resp;
+                                 }
+                                 return nullptr; // Пропускаем другие методы
+                             });
 
     // 2. Добавление CORS-заголовков ко всем ответам
-    
-    app().registerPostHandlingAdvice([](const HttpRequestPtr &req, const HttpResponsePtr &resp) {
+
+    app().registerPostHandlingAdvice([](const HttpRequestPtr &req, const HttpResponsePtr &resp)
+                                     {
         const auto &origin = req->getHeader("Origin");
         if (!origin.empty()) {
             resp->addHeader("Access-Control-Allow-Origin", origin);
@@ -78,8 +92,7 @@ void setupCors()
         }
         resp->addHeader("Access-Control-Allow-Credentials", "true");
         resp->addHeader("Vary", "Origin");
-        resp->addHeader("X-Content-Type-Options", "nosniff");
-    });
+        resp->addHeader("X-Content-Type-Options", "nosniff"); });
 }
 
 void testPasswordHashing();
@@ -97,9 +110,6 @@ namespace
         if (sig == SIGINT || sig == SIGTERM)
         {
             LOG_INFO << "Signal " << sig << " received, shutting down…";
-
-            /*  Чтобы прервать event‑loop корректно, вызываем
-                app().quit() *изнутри* его же цикла.                */
             auto loop = drogon::app().getLoop();
             if (loop)
             {
@@ -132,8 +142,29 @@ int main(int argc, char *argv[])
         }
         else if (command == "--run")
         {
+            ConfigLoader cfgLoader;
+            boost::asio::io_context ioc;
+            auto cfg = cfgLoader.load("./config");
+
+            // Создаем и инициализируем ServerProcessor
+            processor::ServerProcessor business_logic(ioc, cfg);
+            business_logic.initialize();
+            business_logic.start();
+
+            // Запускаем io_context в отдельном потоке
+            std::thread io_thread([&ioc]()
+                                  { ioc.run(); });
+
             printBanner();
-            runRestServer();
+            runRestServer(); // Блокируется до завершения работы REST сервера
+
+            // Корректно завершаем работу ServerProcessor и io_context
+            business_logic.shutdown();
+            ioc.stop();
+            if (io_thread.joinable())
+            {
+                io_thread.join();
+            }
             return 0;
         }
     }
@@ -329,8 +360,8 @@ void runRestServer()
         }
         setupCors();
         drogon::app().loadConfigFile("config/config.json");
-        //drogon::app().registerFilter(std::make_shared<CorsFilter>());
-        //drogon::app().
+        // drogon::app().registerFilter(std::make_shared<CorsFilter>());
+        // drogon::app().
         LOG_INFO << "Server starting…";
         auto handlers = app().getHandlersInfo();
         for (const auto &handlerTuple : handlers)
