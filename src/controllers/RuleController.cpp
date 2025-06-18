@@ -4,6 +4,7 @@
 #include "entities/Rule.hpp"
 #include "db/managers/RuleManager.hpp"
 #include "utils/AuthUtils.hpp"
+#include <string>
 
 using namespace drogon;
 using json = Json::Value;
@@ -21,6 +22,7 @@ namespace api
             auto resp = HttpResponse::newHttpResponse();
             resp->setStatusCode(k401Unauthorized);
             resp->setBody("Unauthorized: Invalid or expired token");
+
             callback(resp);
             return;
         }
@@ -31,6 +33,7 @@ namespace api
             auto resp = HttpResponse::newHttpResponse();
             resp->setStatusCode(k403Forbidden);
             resp->setBody("Forbidden: Admin access required");
+
             callback(resp);
             return;
         }
@@ -46,6 +49,7 @@ namespace api
             error["error"] = errs;
             auto resp = HttpResponse::newHttpJsonResponse(error);
             resp->setStatusCode(k400BadRequest);
+
             callback(resp);
             return;
         }
@@ -53,21 +57,30 @@ namespace api
         {
             db::RuleManager ruleManager_;
             Rule rule = Rule::fromJson(body);
+
+            // Валидация данных
+            if (rule.kind == "threshold" && !rule.operator_.has_value())
+            {
+                throw std::runtime_error("Operator is required for threshold rules");
+            }
+            if (rule.kind == "time" && !rule.time_spec.has_value())
+            {
+                throw std::runtime_error("Time specification is required for time rules");
+            }
+
             if (!ruleManager_.create(rule))
             {
                 Json::Value error;
                 error["error"] = "Failed to create rule";
                 auto resp = HttpResponse::newHttpJsonResponse(error);
                 resp->setStatusCode(k500InternalServerError);
-                resp->addHeader("Access-Control-Allow-Origin", "*");
-                resp->addHeader("Access-Control-Allow-Methods", "GET,POST,PUT,DELETE,OPTIONS");
-                resp->addHeader("Access-Control-Allow-Headers", "Content-Type, Authorization");
-                resp->addHeader("Access-Control-Max-Age", "86400");
+
                 callback(resp);
                 return;
             }
             auto resp = HttpResponse::newHttpJsonResponse(rule.toJson());
             resp->setStatusCode(k201Created);
+
             callback(resp);
         }
         catch (const std::exception &e)
@@ -77,6 +90,7 @@ namespace api
             error["error"] = e.what();
             auto resp = HttpResponse::newHttpJsonResponse(error);
             resp->setStatusCode(k400BadRequest);
+
             callback(resp);
         }
     }
@@ -92,6 +106,7 @@ namespace api
             auto resp = HttpResponse::newHttpResponse();
             resp->setStatusCode(k401Unauthorized);
             resp->setBody("Unauthorized: Invalid or expired token");
+
             callback(resp);
             return;
         }
@@ -104,11 +119,13 @@ namespace api
             error["error"] = "Rule not found";
             auto resp = HttpResponse::newHttpJsonResponse(error);
             resp->setStatusCode(k404NotFound);
+
             callback(resp);
             return;
         }
         auto resp = HttpResponse::newHttpJsonResponse(ruleOpt->toJson());
         resp->setStatusCode(k200OK);
+
         callback(resp);
     }
 
@@ -123,6 +140,7 @@ namespace api
             auto resp = HttpResponse::newHttpResponse();
             resp->setStatusCode(k401Unauthorized);
             resp->setBody("Unauthorized: Invalid or expired token");
+
             callback(resp);
             return;
         }
@@ -133,6 +151,7 @@ namespace api
             auto resp = HttpResponse::newHttpResponse();
             resp->setStatusCode(k403Forbidden);
             resp->setBody("Forbidden: Admin access required");
+
             callback(resp);
             return;
         }
@@ -148,6 +167,7 @@ namespace api
             error["error"] = errs;
             auto resp = HttpResponse::newHttpJsonResponse(error);
             resp->setStatusCode(k400BadRequest);
+
             callback(resp);
             return;
         }
@@ -158,22 +178,65 @@ namespace api
             error["error"] = "Rule not found";
             auto resp = HttpResponse::newHttpJsonResponse(error);
             resp->setStatusCode(k404NotFound);
+
             callback(resp);
             return;
         }
         Rule rule = *ruleOpt;
-        rule.fromJson(body);
+
+        // Частичное обновление вместо полной замены
+        if (body.isMember("name"))
+            rule.name = body["name"].asString();
+        if (body.isMember("kind"))
+            rule.kind = body["kind"].asString();
+        if (body.isMember("from_comp_id"))
+            rule.from_comp_id = body["from_comp_id"].asInt();
+        if (body.isMember("to_comp_id"))
+            rule.to_comp_id = body["to_comp_id"].asInt();
+        if (body.isMember("operator_"))
+            rule.operator_ = body["operator_"].asString();
+        if (body.isMember("threshold"))
+            rule.threshold = body["threshold"].asDouble();
+        if (body.isMember("time_spec"))
+            rule.time_spec = body["time_spec"].asString();
+        if (body.isMember("enabled"))
+            rule.enabled = body["enabled"].asBool();
+
+        // Валидация данных
+        if (rule.kind == "threshold" && !rule.operator_.has_value())
+        {
+            Json::Value error;
+            error["error"] = "Operator is required for threshold rules";
+            auto resp = HttpResponse::newHttpJsonResponse(error);
+            resp->setStatusCode(k400BadRequest);
+
+            callback(resp);
+            return;
+        }
+        if (rule.kind == "time" && !rule.time_spec.has_value())
+        {
+            Json::Value error;
+            error["error"] = "Time specification is required for time rules";
+            auto resp = HttpResponse::newHttpJsonResponse(error);
+            resp->setStatusCode(k400BadRequest);
+
+            callback(resp);
+            return;
+        }
+
         if (!ruleManager_.update(rule))
         {
             Json::Value error;
             error["error"] = "Failed to update rule";
             auto resp = HttpResponse::newHttpJsonResponse(error);
             resp->setStatusCode(k500InternalServerError);
+
             callback(resp);
             return;
         }
-        auto resp = HttpResponse::newHttpResponse();
-        resp->setStatusCode(k204NoContent);
+        auto resp = HttpResponse::newHttpJsonResponse(rule.toJson());
+        resp->setStatusCode(k200OK);
+
         callback(resp);
     }
 
@@ -188,6 +251,7 @@ namespace api
             auto resp = HttpResponse::newHttpResponse();
             resp->setStatusCode(k401Unauthorized);
             resp->setBody("Unauthorized: Invalid or expired token");
+
             callback(resp);
             return;
         }
@@ -198,6 +262,7 @@ namespace api
             auto resp = HttpResponse::newHttpResponse();
             resp->setStatusCode(k403Forbidden);
             resp->setBody("Forbidden: Admin access required");
+
             callback(resp);
             return;
         }
@@ -208,11 +273,14 @@ namespace api
             error["error"] = "Rule not found";
             auto resp = HttpResponse::newHttpJsonResponse(error);
             resp->setStatusCode(k404NotFound);
+
             callback(resp);
             return;
         }
-        auto resp = HttpResponse::newHttpResponse();
-        resp->setStatusCode(k204NoContent);
+        Json::Value r;
+        r["messeage"] = "delete";
+        auto resp = HttpResponse::newHttpJsonResponse(r);
+        resp->setStatusCode(k200OK);
         callback(resp);
     }
 
@@ -227,6 +295,7 @@ namespace api
             auto resp = HttpResponse::newHttpResponse();
             resp->setStatusCode(k401Unauthorized);
             resp->setBody("Unauthorized: Invalid or expired token");
+
             callback(resp);
             return;
         }
@@ -237,6 +306,7 @@ namespace api
             arr.append(r.toJson());
         auto resp = HttpResponse::newHttpJsonResponse(arr);
         resp->setStatusCode(k200OK);
+
         callback(resp);
     }
 
@@ -251,6 +321,7 @@ namespace api
             auto resp = HttpResponse::newHttpResponse();
             resp->setStatusCode(k401Unauthorized);
             resp->setBody("Unauthorized: Invalid or expired token");
+
             callback(resp);
             return;
         }
@@ -261,6 +332,7 @@ namespace api
             auto resp = HttpResponse::newHttpResponse();
             resp->setStatusCode(k403Forbidden);
             resp->setBody("Forbidden: Admin access required");
+
             callback(resp);
             return;
         }
@@ -277,21 +349,30 @@ namespace api
             error["error"] = "Invalid or missing 'enabled' field";
             auto resp = HttpResponse::newHttpJsonResponse(error);
             resp->setStatusCode(k400BadRequest);
+
             callback(resp);
             return;
         }
-        bool enabled = body["enabled"].asBool();
-        if (!ruleManager_.toggle_rule(rule_id, enabled))
+        bool new_state = body["enabled"].asBool();
+        if (!ruleManager_.toggle_rule(rule_id, new_state))
         {
             Json::Value error;
             error["error"] = "Failed to toggle rule";
             auto resp = HttpResponse::newHttpJsonResponse(error);
             resp->setStatusCode(k500InternalServerError);
+
             callback(resp);
             return;
         }
-        auto resp = HttpResponse::newHttpResponse();
-        resp->setStatusCode(k204NoContent);
+        // После успешного toggle'а
+        Json::Value result;
+        result["rule_id"] = rule_id;
+        result["enabled"] = new_state;
+        result["message"] = new_state ? "Rule enabled" : "Rule disabled";
+
+        auto resp = HttpResponse::newHttpJsonResponse(result);
+        resp->setStatusCode(k200OK);
+
         callback(resp);
     }
 

@@ -59,8 +59,6 @@ set(SOURCES
     src/controllers/MetricController.cpp
     src/controllers/RuleController.cpp
     src/controllers/UserController.cpp
-
-    src/filters/CorsFilter.cpp
 )
 
 set(HEADERS
@@ -99,8 +97,6 @@ set(HEADERS
     include/controllers/MetricController.hpp
     include/controllers/RuleController.hpp
     include/controllers/UserController.hpp
-
-    include/filters/CorsFilter.hpp
 )
 
 add_executable(smart_greenhouse ${SOURCES} ${HEADERS})

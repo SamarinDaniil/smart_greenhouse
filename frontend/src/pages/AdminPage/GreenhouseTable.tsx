@@ -18,6 +18,7 @@ const GreenhousesTable: React.FC = () => {
   const [editId, setEditId] = useState<number | null>(null);
   const [draft, setDraft] = useState<Partial<Greenhouse>>({});
   const [addingRow, setAddingRow] = useState(false);
+  const [isOpen, setIsOpen] = useState(true);
 
   const loadGreenhouses = async () => {
     setLoading(true);
@@ -44,7 +45,6 @@ const GreenhousesTable: React.FC = () => {
 
     try {
       if (addingRow) {
-        // Создание
         const newGH = await fetcher<Greenhouse>("/api/greenhouses", {
           method: "POST",
           body: JSON.stringify({
@@ -54,7 +54,6 @@ const GreenhousesTable: React.FC = () => {
         });
         setGreenhouses((prev) => [...prev, newGH]);
       } else if (editId !== null) {
-        // Обновление
         await fetcher(`/api/greenhouses/${editId}`, {
           method: "PUT",
           body: JSON.stringify({
@@ -102,121 +101,121 @@ const GreenhousesTable: React.FC = () => {
     setDraft({});
   };
 
-  const renderRow = (gh: Greenhouse) =>
-    editId === gh.gh_id ? (
-      <tr key={gh.gh_id}>
-        <td>{gh.gh_id}</td>
-        <td>
-          <Form.Control
-            value={draft.name || ""}
-            onChange={(e) => setDraft({ ...draft, name: e.target.value })}
-          />
-        </td>
-        <td>
-          <Form.Control
-            value={draft.location || ""}
-            onChange={(e) => setDraft({ ...draft, location: e.target.value })}
-          />
-        </td>
-        <td>{gh.created_at}</td>
-        <td>{gh.updated_at}</td>
-        <td>
-          <Button size="sm" variant="success" onClick={handleSave}>
-            Сохранить
-          </Button>{" "}
-          <Button size="sm" variant="secondary" onClick={cancelEdit}>
-            Отмена
-          </Button>
-        </td>
-      </tr>
-    ) : (
-      <tr key={gh.gh_id}>
-        <td>{gh.gh_id}</td>
-        <td>{gh.name}</td>
-        <td>{gh.location}</td>
-        <td>{gh.created_at}</td>
-        <td>{gh.updated_at}</td>
-        <td>
-          <Button
-            size="sm"
-            variant="outline-primary"
-            onClick={() => startEdit(gh)}
-          >
-            ✏️
-          </Button>{" "}
-          <Button
-            size="sm"
-            variant="outline-danger"
-            onClick={() => handleDelete(gh.gh_id)}
-          >
-            🗑️
-          </Button>
-        </td>
-      </tr>
-    );
+  const renderRow = (gh: Greenhouse) => (
+    <tr key={gh.gh_id} className="align-middle">
+      {editId === gh.gh_id ? (
+        <>
+          <td>{gh.gh_id}</td>
+          <td>
+            <Form.Control
+              size="sm"
+              value={draft.name || ""}
+              onChange={(e) => setDraft({ ...draft, name: e.target.value })}
+            />
+          </td>
+          <td>
+            <Form.Control
+              size="sm"
+              value={draft.location || ""}
+              onChange={(e) => setDraft({ ...draft, location: e.target.value })}
+            />
+          </td>
+          <td className="d-none d-md-table-cell">—</td>
+          <td className="d-none d-md-table-cell">—</td>
+          <td>
+            <Button size="sm" variant="success" onClick={handleSave}>✔️</Button>{' '}
+            <Button size="sm" variant="outline-secondary" onClick={cancelEdit}>✖️</Button>
+          </td>
+        </>
+      ) : (
+        <>
+          <td>{gh.gh_id}</td>
+          <td>{gh.name}</td>
+          <td>{gh.location}</td>
+          <td className="d-none d-md-table-cell">{gh.created_at}</td>
+          <td className="d-none d-md-table-cell">{gh.updated_at}</td>
+          <td>
+            <Button size="sm" variant="outline-primary" onClick={() => startEdit(gh)}>✏️</Button>{' '}
+            <Button size="sm" variant="outline-danger" onClick={() => handleDelete(gh.gh_id)}>🗑️</Button>
+          </td>
+        </>
+      )}
+    </tr>
+  );
 
   return (
-    <Card className="mb-4 shadow-sm">
-      <Card.Body>
-        <Card.Title className="d-flex justify-content-between align-items-center">
-          Теплицы
+    <Card className="shadow-sm">
+      <Card.Header className="d-flex justify-content-between align-items-center">
+        <h3 className="mb-0">Теплицы</h3>
+        <div>
+          <Button
+            size="sm"
+            variant="outline-secondary"
+            onClick={() => setIsOpen(!isOpen)}
+            className="me-2"
+          >
+            {isOpen ? "Скрыть" : "Показать"}
+          </Button>
           {!addingRow && editId === null && (
             <Button size="sm" onClick={startAdd}>
               + Добавить
             </Button>
           )}
-        </Card.Title>
-
+        </div>
+      </Card.Header>
+      <Card.Body className="p-0">
         {loading ? (
           <div className="text-center py-4">
             <Spinner animation="border" />
           </div>
         ) : error ? (
-          <Alert variant="danger">{error}</Alert>
+          <Alert variant="danger" className="m-3">{error}</Alert>
         ) : (
-          <Table striped bordered hover responsive>
-            <thead>
-              <tr>
-                <th>ID</th>
-                <th>Название</th>
-                <th>Локация</th>
-                <th>Создано</th>
-                <th>Обновлено</th>
-                <th>Действия</th>
-              </tr>
-            </thead>
-            <tbody>
-              {greenhouses.map(renderRow)}
+          isOpen && (
+            <div className="table-responsive">
+              <Table hover responsive className="mb-0">
+                <thead className="table-success">
+                  <tr>
+                    <th>ID</th>
+                    <th>Название</th>
+                    <th>Локация</th>
+                    <th className="d-none d-md-table-cell">Создано</th>
+                    <th className="d-none d-md-table-cell">Обновлено</th>
+                    <th>Действия</th>
+                  </tr>
+                </thead>
+                <tbody>
+                  {greenhouses.map(renderRow)}
 
-              {addingRow && (
-                <tr>
-                  <td>—</td>
-                  <td>
-                    <Form.Control
-                      value={draft.name || ""}
-                      onChange={(e) => setDraft({ ...draft, name: e.target.value })}
-                    />
-                  </td>
-                  <td>
-                    <Form.Control
-                      value={draft.location || ""}
-                      onChange={(e) => setDraft({ ...draft, location: e.target.value })}
-                    />
-                  </td>
-                  <td>—</td>
-                  <td>—</td>
-                  <td>
-                    <Button size="sm" variant="success" onClick={handleSave}>
-                      Создать
-                    </Button>{" "}
-                    <Button size="sm" variant="secondary" onClick={cancelEdit}>
-                      Отмена
-                    </Button>
-                  </td>
-                </tr>
-              )}
-            </tbody>
-          </Table>
+                  {addingRow && (
+                    <tr className="align-middle">
+                      <td>—</td>
+                      <td>
+                        <Form.Control
+                          size="sm"
+                          value={draft.name || ""}
+                          onChange={(e) => setDraft({ ...draft, name: e.target.value })}
+                        />
+                      </td>
+                      <td>
+                        <Form.Control
+                          size="sm"
+                          value={draft.location || ""}
+                          onChange={(e) => setDraft({ ...draft, location: e.target.value })}
+                        />
+                      </td>
+                      <td className="d-none d-md-table-cell">—</td>
+                      <td className="d-none d-md-table-cell">—</td>
+                      <td>
+                        <Button size="sm" variant="success" onClick={handleSave}>✔️</Button>{' '}
+                        <Button size="sm" variant="outline-secondary" onClick={cancelEdit}>✖️</Button>
+                      </td>
+                    </tr>
+                  )}
+                </tbody>
+              </Table>
+            </div>
+          )
         )}
       </Card.Body>
     </Card>

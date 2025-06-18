@@ -1,5 +1,5 @@
 // src/pages/AdminPage/ComponentsTable.tsx
-import React, { useEffect, useState } from "react";
+import React, { useCallback, useEffect, useState } from "react";
 import { Table, Spinner, Alert, Card, Button, Form } from "react-bootstrap";
 import { fetcher } from "../../api/fetcher";
 
@@ -21,6 +21,8 @@ const ComponentsTable: React.FC = () => {
   const [editId, setEditId] = useState<number | null>(null);
   const [draft, setDraft] = useState<Partial<Component>>({});
   const [addingRow, setAddingRow] = useState(false);
+  const [isOpen, setIsOpen] = useState(true);
+  const handleToggleClick = useCallback(() => setIsOpen(prev => !prev), []);
 
   // Загрузка списка компонентов
   const load = async () => {
@@ -98,12 +100,14 @@ const ComponentsTable: React.FC = () => {
     setDraft({});
   };
 
+
   const renderRow = (c: Component) =>
     editId === c.comp_id ? (
-      <tr key={c.comp_id}>
+      <tr key={c.comp_id} className="align-middle">
         <td>{c.comp_id}</td>
         <td>
           <Form.Control
+            size="sm"
             type="number"
             value={draft.gh_id}
             onChange={(e) => setDraft({ ...draft, gh_id: Number(e.target.value) })}
@@ -111,12 +115,14 @@ const ComponentsTable: React.FC = () => {
         </td>
         <td>
           <Form.Control
+            size="sm"
             value={draft.name}
             onChange={(e) => setDraft({ ...draft, name: e.target.value })}
           />
         </td>
         <td>
           <Form.Select
+            size="sm"
             value={draft.role}
             onChange={(e) => setDraft({ ...draft, role: e.target.value })}
           >
@@ -127,6 +133,7 @@ const ComponentsTable: React.FC = () => {
         </td>
         <td>
           <Form.Control
+            size="sm"
             value={draft.subtype}
             onChange={(e) => setDraft({ ...draft, subtype: e.target.value })}
           />
@@ -134,12 +141,12 @@ const ComponentsTable: React.FC = () => {
         <td>{c.created_at}</td>
         <td>{c.updated_at}</td>
         <td>
-          <Button size="sm" variant="success" onClick={handleSave}>Сохранить</Button>{" "}
-          <Button size="sm" variant="secondary" onClick={cancelEdit}>Отмена</Button>
+          <Button size="sm" variant="success" onClick={handleSave}>✔️</Button>{" "}
+          <Button size="sm" variant="outline-secondary" onClick={cancelEdit}>✖️</Button>
         </td>
       </tr>
     ) : (
-      <tr key={c.comp_id}>
+      <tr key={c.comp_id} className="align-middle">
         <td>{c.comp_id}</td>
         <td>{c.gh_id}</td>
         <td>{c.name}</td>
@@ -155,78 +162,96 @@ const ComponentsTable: React.FC = () => {
     );
 
   return (
-    <Card className="mb-4 shadow-sm">
-      <Card.Body>
-        <Card.Title className="d-flex justify-content-between align-items-center">
-          Компоненты
+    <Card className="shadow-sm">
+      <Card.Header className="d-flex justify-content-between align-items-center">
+        <h3 className="mb-0">Компоненты</h3>
+        <div>
+          <Button
+            size="sm"
+            variant="outline-secondary"
+            onClick={() => setIsOpen(!isOpen)}
+            className="me-2"
+          >
+            {isOpen ? 'Скрыть' : 'Показать'}
+          </Button>
           {!addingRow && editId == null && (
             <Button size="sm" onClick={startAdd}>+ Добавить</Button>
           )}
-        </Card.Title>
-
+        </div>
+      </Card.Header>
+      <Card.Body className="p-0">
         {loading ? (
-          <div className="text-center py-4"><Spinner animation="border" /></div>
+          <div className="text-center py-4"><Spinner /></div>
         ) : error ? (
-          <Alert variant="danger">{error}</Alert>
+          <Alert variant="danger" className="m-3">{error}</Alert>
         ) : (
-          <Table striped bordered hover responsive>
-            <thead>
-              <tr>
-                <th>ID</th>
-                <th>GH_ID</th>
-                <th>Name</th>
-                <th>Role</th>
-                <th>Subtype</th>
-                <th>Created At</th>
-                <th>Updated At</th>
-                <th>Actions</th>
-              </tr>
-            </thead>
-            <tbody>
-              {components.map(renderRow)}
-
-              {addingRow && (
+          isOpen && (
+            <Table hover responsive className="mb-0">
+              <thead className="table-success">
                 <tr>
-                  <td>—</td>
-                  <td>
-                    <Form.Control
-                      type="number"
-                      value={draft.gh_id}
-                      onChange={(e) => setDraft({ ...draft, gh_id: Number(e.target.value) })}
-                    />
-                  </td>
-                  <td>
-                    <Form.Control
-                      value={draft.name}
-                      onChange={(e) => setDraft({ ...draft, name: e.target.value })}
-                    />
-                  </td>
-                  <td>
-                    <Form.Select
-                      value={draft.role}
-                      onChange={(e) => setDraft({ ...draft, role: e.target.value })}
-                    >
-                      <option value="">Выберите роль</option>
-                      <option value="sensor">sensor</option>
-                      <option value="actuator">actuator</option>
-                    </Form.Select>
-                  </td>
-                  <td>
-                    <Form.Control
-                      value={draft.subtype}
-                      onChange={(e) => setDraft({ ...draft, subtype: e.target.value })}
-                    />
-                  </td>
-                  <td>—</td>
-                  <td>—</td>
-                  <td>
-                    <Button size="sm" variant="success" onClick={handleSave}>Создать</Button>{" "}
-                    <Button size="sm" variant="secondary" onClick={cancelEdit}>Отмена</Button>
-                  </td>
+                  <th>ID</th>
+                  <th>GH_ID</th>
+                  <th>Name</th>
+                  <th>Role</th>
+                  <th>Subtype</th>
+                  <th>Created At</th>
+                  <th>Updated At</th>
+                  <th>Actions</th>
                 </tr>
-              )}
-            </tbody>
-          </Table>
+              </thead>
+              <tbody>
+                {components.map(renderRow)}
+
+                {addingRow && (
+                  <tr className="align-middle">
+                    <td>—</td>
+                    <td>
+                      <Form.Control
+                        size="sm"
+                        type="number"
+                        placeholder="GH_ID"
+                        value={draft.gh_id}
+                        onChange={(e) => setDraft({ ...draft, gh_id: Number(e.target.value) })}
+                      />
+                    </td>
+                    <td>
+                      <Form.Control
+                        size="sm"
+                        placeholder="Name"
+                        value={draft.name}
+                        onChange={(e) => setDraft({ ...draft, name: e.target.value })}
+                      />
+                    </td>
+                    <td>
+                      <Form.Select
+                        size="sm"
+                        value={draft.role}
+                        onChange={(e) => setDraft({ ...draft, role: e.target.value })}
+                      >
+                        <option value="">Выберите роль</option>
+                        <option value="sensor">sensor</option>
+                        <option value="actuator">actuator</option>
+                      </Form.Select>
+                    </td>
+                    <td>
+                      <Form.Control
+                        size="sm"
+                        placeholder="Subtype"
+                        value={draft.subtype}
+                        onChange={(e) => setDraft({ ...draft, subtype: e.target.value })}
+                      />
+                    </td>
+                    <td>—</td>
+                    <td>—</td>
+                    <td>
+                      <Button size="sm" variant="success" onClick={handleSave}>✔️</Button>{" "}
+                      <Button size="sm" variant="outline-secondary" onClick={cancelEdit}>✖️</Button>
+                    </td>
+                  </tr>
+                )}
+              </tbody>
+            </Table>
+          )
         )}
       </Card.Body>
     </Card>

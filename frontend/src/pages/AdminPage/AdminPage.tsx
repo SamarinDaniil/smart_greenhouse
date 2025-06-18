@@ -1,44 +1,43 @@
 // src/pages/AdminPage.tsx
 import React from "react";
-import { Container, Row, Col, Table, Card } from "react-bootstrap";
-import { JSX } from "react/jsx-runtime";
+import { Container, Card } from "react-bootstrap";
 import UsersTable from "./UsersTable";
 import GreenhousesTable from "./GreenhouseTable";
 import ComponentsTable from "./ComponentPage";
 import RuleTable from "./RuleTable";
 
 const AdminPage: React.FC = () => {
-
-  const renderTable = (title: string, headers: string[], rows: JSX.Element[]) => (
-    <Card className="mb-4 shadow-sm">
-      <Card.Body>
-        <Card.Title>{title}</Card.Title>
-        <Table striped bordered hover responsive>
-          <thead>
-            <tr>{headers.map((h, idx) => <th key={idx}>{h}</th>)}</tr>
-          </thead>
-          <tbody>{rows}</tbody>
-        </Table>
-      </Card.Body>
-    </Card>
-  );
-
   return (
-    <Container className="py-4">
+    <Container className="app-container py-4">
       <h1 className="mb-4">Админ-панель</h1>
 
-      {/* Users */}
-      <UsersTable />
+      {/* Раздел пользователей */}
+      <Card className="mb-5 p-sm bg-white rounded-3 shadow-sm">
+        <Card.Body>
+          <UsersTable />
+        </Card.Body>
+      </Card>
 
-      {/* Greenhouses */}
-      <GreenhousesTable />
+      {/* Раздел теплиц */}
+      <Card className="mb-5 p-sm bg-white rounded-3 shadow-sm">
+        <Card.Body>
+          <GreenhousesTable />
+        </Card.Body>
+      </Card>
 
-      {/* Components */}
-      <ComponentsTable />
+      {/* Раздел компонентов */}
+      <Card className="mb-5 p-sm bg-white rounded-3 shadow-sm">
+        <Card.Body>
+          <ComponentsTable />
+        </Card.Body>
+      </Card>
 
-      {/* Rules */}
-      <RuleTable />
-
+      {/* Раздел правил */}
+      <Card className="mb-5 p-sm bg-white rounded-3 shadow-sm">
+        <Card.Body>
+          <RuleTable />
+        </Card.Body>
+      </Card>
     </Container>
   );
 };

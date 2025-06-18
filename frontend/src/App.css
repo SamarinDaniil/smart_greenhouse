@@ -1,38 +1,203 @@
-.App {
+/* Global Reset */
+@import url('https://cdn.jsdelivr.net/npm/modern-normalize/modern-normalize.css');
+
+:root {
+  /* Color Palette */
+  --color-bg: #f5fdf8;
+  --color-primary: #2f8f4e;
+  --color-secondary: #ffffff;
+  --color-accent: #65bd7d;
+  --color-text: #2e3a3f;
+  --color-gradient-start: #ace4c0;
+  --color-gradient-end: #2f8f4e;
+
+  /* Spacing Scale */
+  --space-xxs: 0.25rem;
+  --space-xs: 0.5rem;
+  --space-sm: 1rem;
+  --space-md: 1.5rem;
+  --space-lg: 2rem;
+
+  /* Typography */
+  --font-base: 'Roboto', sans-serif;
+  --font-size-base: 1rem;
+  --line-height: 1.5;
+}
+
+/* Base Styles */
+* {
+  box-sizing: border-box;
+}
+
+body {
+  margin: 0;
+  padding: 0;
+  font-family: var(--font-base);
+  font-size: var(--font-size-base);
+  line-height: var(--line-height);
+  color: var(--color-text);
+  background-color: var(--color-bg);
+}
+
+a {
+  color: var(--color-primary);
+  text-decoration: none;
+}
+
+a:hover {
+  text-decoration: underline;
+}
+
+button {
+  font-family: var(--font-base);
+}
+
+/* Container */
+.app-container {
+  max-width: 1200px;
+  margin: 0 auto;
+  padding: var(--space-sm);
+}
+
+/* Headings */
+h1, h2, h3, h4, h5, h6 {
+  color: var(--color-primary);
+  margin-top: var(--space-md);
+  margin-bottom: var(--space-sm);
+}
+
+/* Responsive Typography */
+h1 {
+  font-size: 1.75rem;
+}
+
+@media (min-width: 576px) {
+  h1 {
+    font-size: 2rem;
+  }
+}
+
+@media (min-width: 992px) {
+  h1 {
+    font-size: 2.5rem;
+  }
+}
+
+/* Navbar Overrides */
+.navbar {
+  background-color: var(--color-secondary) !important;
+  padding: var(--space-xs) var(--space-sm);
+}
+
+.navbar-brand {
+  color: var(--color-primary) !important;
+  font-weight: bold;
+}
+
+.nav-link {
+  color: var(--color-text) !important;
+  margin-left: var(--space-sm);
+}
+
+.navbar-toggler {
+  border-color: var(--color-primary);
+}
+
+.navbar-toggler-icon {
+  color: var(--color-primary);
+}
+
+/* Card Styling */
+.card {
+  border: none;
+  border-radius: var(--space-xs);
+  box-shadow: 0 2px 8px rgba(0,0,0,0.1);
+  margin-bottom: var(--space-md);
+}
+
+.card-header, .card-body {
+  background-color: var(--color-secondary);
+}
+
+/* Button Styling */
+.btn-primary {
+  background-color: var(--color-primary);
+  border-color: var(--color-primary);
+}
+
+.btn-primary:hover {
+  background-color: var(--color-accent);
+  border-color: var(--color-accent);
+}
+
+.btn-outline-danger {
+  color: var(--color-primary);
+  border-color: var(--color-primary);
+}
+
+.btn-outline-danger:hover {
+  background-color: var(--color-primary);
+  color: var(--color-secondary);
+}
+
+/* Forms */
+.form-control {
+  border-radius: var(--space-xxs);
+  border-color: rgba(0,0,0,0.1);
+}
+
+/* Tables */
+.table {
+  background-color: var(--color-secondary);
+  border-radius: var(--space-xxs);
+  overflow: hidden;
+}
+
+.table th {
+  background-color: var(--color-primary);
+  color: var(--color-secondary);
+}
+
+/* Utility Classes */
+.text-center {
   text-align: center;
 }
 
-.App-logo {
-  height: 40vmin;
-  pointer-events: none;
+.mt-md {
+  margin-top: var(--space-md) !important;
 }
 
-@media (prefers-reduced-motion: no-preference) {
-  .App-logo {
-    animation: App-logo-spin infinite 20s linear;
-  }
+.p-sm {
+  padding: var(--space-sm) !important;
 }
 
-.App-header {
-  background-color: #282c34;
+.login-page {
+  background: linear-gradient(135deg, var(--color-gradient-start) 0%, var(--color-gradient-end) 100%);
+  background-size: 200% 200%;
+  animation: gradientShift 10s ease infinite;
   min-height: 100vh;
-  display: flex;
-  flex-direction: column;
-  align-items: center;
-  justify-content: center;
-  font-size: calc(10px + 2vmin);
-  color: white;
+}
+.form-control,
+.btn {
+  transition: box-shadow 0.2s ease, transform 0.2s ease;
+}
+.form-control:focus {
+  box-shadow: 0 0 0 0.2rem rgba(47, 143, 78, 0.25);
+}
+.btn:hover {
+  transform: translateY(-2px);
+  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.1);
 }
 
-.App-link {
-  color: #61dafb;
+.form-group .bi {
+  color: rgba(47, 143, 78, 0.5);
+}
+::placeholder {
+  color: rgba(46, 58, 63, 0.6);
 }
 
-@keyframes App-logo-spin {
-  from {
-    transform: rotate(0deg);
-  }
-  to {
-    transform: rotate(360deg);
+@media (max-width: 320px) {
+  .login-page .bg-white {
+    padding: 1rem !important;
   }
 }
