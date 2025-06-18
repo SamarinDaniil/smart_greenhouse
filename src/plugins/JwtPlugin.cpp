@@ -50,7 +50,6 @@ std::string JwtPlugin::createToken(const std::string &userType) const
 bool JwtPlugin::validateToken(const std::string &token, std::string &outRole) const
 {
     std::error_code ec;
-    // Декодируем токен
     auto decoded_token = jwt::decode(
         token,
         algorithms({algorithm_}),

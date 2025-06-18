@@ -164,20 +164,20 @@ const ComponentsTable: React.FC = () => {
   return (
     <Card className="shadow-sm">
       <Card.Header className="d-flex justify-content-between align-items-center">
-        <h3 className="mb-0">Компоненты</h3>
-        <div>
-          <Button
-            size="sm"
-            variant="outline-secondary"
-            onClick={() => setIsOpen(!isOpen)}
-            className="me-2"
-          >
-            {isOpen ? 'Скрыть' : 'Показать'}
-          </Button>
-          {!addingRow && editId == null && (
-            <Button size="sm" onClick={startAdd}>+ Добавить</Button>
-          )}
-        </div>
+          <h3 className="mb-0 mb-sm-2">Компоненты</h3>
+          <div className="mt-2 mt-sm-0 d-flex flex-wrap gap-1">
+            <Button
+              size="sm"
+              variant="outline-secondary"
+              onClick={() => setIsOpen(!isOpen)}
+              className="me-0 me-sm-2"
+            >
+              {isOpen ? 'Скрыть' : 'Показать'}
+            </Button>
+            {!addingRow && editId == null && (
+              <Button size="sm" onClick={startAdd}>+ Добавить</Button>
+            )}
+          </div>
       </Card.Header>
       <Card.Body className="p-0">
         {loading ? (

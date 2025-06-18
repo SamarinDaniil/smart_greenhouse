@@ -5,6 +5,7 @@
 #include <cassert>
 #include <iostream>
 #include <csignal>
+#include "config/ConfigLoader.hpp"
 #include <memory>
 #include "utils/PasswordHasher.hpp"
 #include "db/Database.hpp"
@@ -67,19 +68,15 @@ void setupCors()
     });
 
     // 2. Добавление CORS-заголовков ко всем ответам
+    
     app().registerPostHandlingAdvice([](const HttpRequestPtr &req, const HttpResponsePtr &resp) {
-        // Разрешаем домен источника
         const auto &origin = req->getHeader("Origin");
         if (!origin.empty()) {
             resp->addHeader("Access-Control-Allow-Origin", origin);
         } else {
-            resp->addHeader("Access-Control-Allow-Origin", "*");
+            resp->addHeader("Access-Control-Allow-Origin", "http://localhost:8080");
         }
-
-        // Разрешаем учетные данные
         resp->addHeader("Access-Control-Allow-Credentials", "true");
-
-        // Дополнительные заголовки для безопасности
         resp->addHeader("Vary", "Origin");
         resp->addHeader("X-Content-Type-Options", "nosniff");
     });
@@ -319,6 +316,7 @@ void runRestServer()
 {
     try
     {
+
         auto dbPtr = std::make_unique<db::Database>();
         if (dbPtr->initialize())
         {
