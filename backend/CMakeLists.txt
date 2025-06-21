@@ -6,11 +6,10 @@ set(CMAKE_CXX_STANDARD_REQUIRED ON)
 set(CMAKE_CXX_EXTENSIONS OFF)       
 set(CMAKE_EXPORT_COMPILE_COMMANDS ON)
 
-
 set(CMAKE_CXX_COMPILER g++-13)
 
 #Поиск зависимостей
-find_package(GTest REQUIRED)
+find_package(OpenSSL REQUIRED)
 find_package(cpp-jwt REQUIRED)
 find_package(libxcrypt REQUIRED)
 find_package(Drogon REQUIRED)
@@ -110,6 +109,7 @@ target_include_directories(smart_greenhouse PRIVATE
 
 target_link_libraries(smart_greenhouse
     PRIVATE
+        openssl::openssl
         JsonCpp::JsonCpp
         cpp-jwt::cpp-jwt
         libxcrypt::libxcrypt
@@ -118,7 +118,6 @@ target_link_libraries(smart_greenhouse
         Drogon::Drogon
         SQLite::SQLite3
         PahoMqttCpp::paho-mqttpp3-static
-        gtest::gtest
     PUBLIC
         Boost::filesystem
         Boost::system

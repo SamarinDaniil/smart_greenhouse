@@ -3,6 +3,8 @@ uploads/
 build/
 bin/
 lib/
+frontend/node_modules/
+frontend/node_modules_bak/
 *.o
 *.obj
 *.lo

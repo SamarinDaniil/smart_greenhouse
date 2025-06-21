@@ -202,10 +202,9 @@ void MQTTClient::do_subscribe() {
     }
 }
 
+///< Экспоненциальный backoff с ограничением максимума
 void MQTTClient::schedule_reconnect() {
     if (stopping_) return;
-    
-    // Экспоненциальный backoff с ограничением максимума
     int delay_seconds = std::min(5 * (1 << reconnect_attempts_), max_backoff_);
     reconnect_attempts_++;
     

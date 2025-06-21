@@ -7,7 +7,6 @@ nlohmann_json/3.11.3
 paho-mqtt-cpp/1.5.3
 libxcrypt/4.4.36
 cpp-jwt/1.5
-gtest/1.16.0
 
 [options]
 *:cppstd=20
@@ -22,7 +21,7 @@ boost/*:log=True
 boost/*:log_setup=True
 boost/*:regex=True
 boost/*:random=True
-libxcrypt/*:with_crypt_compat=yes  # Включает поддержку crypt()
+libxcrypt/*:with_crypt_compat=yes
 drogon/*:shared=True
 
 [generators]

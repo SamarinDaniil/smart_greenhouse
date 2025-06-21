@@ -1,0 +1,11 @@
+**/node_modules
+.git
+**/.env
+**/dist
+**/build
+**/*.log
+**/Dockerfile
+**/.dockerignore
+**/.vscode
+**/npm-debug.log
+**/yarn-error.log
